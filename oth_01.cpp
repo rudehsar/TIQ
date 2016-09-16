@@ -2684,8 +2684,10 @@ Constitution for the United States of America.";
         }
     };
 
-    void main()
+    static void run()
     {
         p18().test();
     }
+
+    //REGISTER_RUNNABLE(oth1)
 }

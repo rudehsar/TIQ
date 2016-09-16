@@ -3611,33 +3611,93 @@ namespace lcd1
 
     /* Scramble String */
     // LeetCode#87
-    // Given two strings s1 and s2 of the same length, determine if s2 is a scrambled string of s1.
+    // Given a string s1, we may represent it as a binary tree by partitioning it to two non-empty
+    // substrings recursively.
     struct p087
     {
-        bool isScrambled(const string& s1, const string& s2)
+        bool isScramble_0(string s1, string s2)
         {
-            unordered_map<char, int> m;
-            for (auto& c : s1)
-                m[c] += 1;
+            if (s1.size() != s2.size())
+                return false;
 
-            for (auto& c : s2)
-                m[c] -= 1;
+            if (s1.size() == 1)
+                return s1[0] == s2[0];
 
-            for (auto& p : m)
+            unordered_set<char> m1;
+            unordered_set<char> m2;
+            for (int i = 0; i < s1.size(); ++i)
+                m1.insert(s1[i]), m2.insert(s2[i]);
+
+            if (m1 != m2)
+                return false;
+
+            for (int i = 1; i < s2.size(); ++i)
             {
-                if (p.second != 0)
-                    return false;
+                // cut at length i from left for both strings
+                if (isScramble_0(s1.substr(0, i), s2.substr(0, i)) &&
+                    isScramble_0(s1.substr(i), s2.substr(i)))
+                    return true;
+
+                // cut at length i from left on s1 and from right on s2 
+                if (isScramble_0(s1.substr(0, i), s2.substr(s2.size() - i, i)) &&
+                    isScramble_0(s1.substr(i), s2.substr(0, s2.size() - i)))
+                    return true;
             }
 
-            return true;
+            return false;
+        }
+
+        bool isScrambleHelper(string s1, string s2, bool isReversed)
+        {
+            if (s1.size() != s2.size())
+                return false;
+
+            if (s1.size() == 1)
+                return s1[0] == s2[0];
+
+            vector<int> p;
+            unordered_multiset<char> m1;
+            unordered_multiset<char> m2;
+            for (int i = 0; i < s1.size(); ++i)
+            {
+                m1.insert(s1[i]);
+                m2.insert(s2[i]);
+
+                if (m1 == m2)
+                    p.push_back(i);
+            }
+
+            if (m1 != m2)
+                return false;
+
+            p.pop_back();
+            for (int i : p)
+            {
+                if (isScrambleHelper(s1.substr(0, i + 1), s2.substr(0, i + 1), false) &&
+                    isScrambleHelper(s1.substr(i + 1), s2.substr(i + 1), false))
+                    return true;
+            }
+
+            if (!isReversed)
+            {
+                reverse(s2.begin(), s2.end());
+                return isScrambleHelper(s1, s2, true);
+            }
+
+            return false;
+        }
+
+        bool isScramble(string s1, string s2)
+        {
+            return isScrambleHelper(s1, s2, false);
         }
 
         void test()
         {
-            VERIFY(isScrambled("", ""));
-            VERIFY(isScrambled("aaa", "aaa"));
-            VERIFY(isScrambled("abc", "acb"));
-            VERIFY(!isScrambled("abc", "abx"));
+            VERIFY(isScramble("great", "rgtae"));
+            VERIFY(isScramble("abc", "bca"));
+            VERIFY(isScramble("abc", "abc"));
+            VERIFY(!isScramble("abcd", "bdac"));
         }
     };
 
@@ -7573,8 +7633,10 @@ namespace lcd1
         }
     };
 
-    void main()
+    static void run()
     {
         p022().test();
     }
+
+    REGISTER_RUNNABLE(lcd1)
 }

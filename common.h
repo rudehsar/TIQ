@@ -1,5 +1,18 @@
 #pragma once
 
+typedef void(*PExtMain)();
+extern unordered_map<PExtMain, bool> g_extMains;
+
+#define REGISTER_RUNNABLE(x) \
+    static void run(); \
+    void x ## () { run(); } \
+    class __register_ ## x \
+    { \
+    public: \
+        __register_ ## x() { g_extMains[ ## x ## ] = true; } \
+    }; \
+    static __register_ ## x __register_ ## x ## _; \
+
 #define LOG(x) std::cout << x << std::endl
 #define VERIFY(x) do { \
     if (x) \
