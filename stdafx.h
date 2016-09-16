@@ -42,3 +42,32 @@
 using namespace std;
 using namespace utl;
 using namespace cmn;
+
+typedef void(*PExtMain)();
+__declspec(selectany) vector<PExtMain> g_runnables;
+
+#define REGISTER_RUNNABLE(x) \
+    static void run(); \
+    void x ## () { run(); } \
+    class __register_ ## x \
+    { \
+    public: \
+        __register_ ## x() \
+        { \
+            g_runnables.push_back(x); \
+        } \
+    }; \
+    static __register_ ## x __register_ ## x ## _; \
+            //LOG(#x); \
+            //LOG("&g_runnables " << &g_runnables); \
+            //LOG("added " << x); \
+            //LOG(g_runnables.size()); \
+
+#define LOG(x) std::cout << x << std::endl
+
+#define VERIFY(x) do { \
+        if (x) \
+            LOG("verification passed (" ## #x ## ")"); \
+        else \
+            LOG("verification FAILED (" ## #x ## ")"); \
+    } while (0)

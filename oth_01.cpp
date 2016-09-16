@@ -1143,60 +1143,57 @@ namespace oth1
     // margin of victory for the starting player in the pick-up-coins game.
     struct p18
     {
-        int getMaxGain_0(vector<int>& v)
+        int getMaxGain_0(const vector<int>& v)
         {
-            vector<vector<int>> dp(v.size(), vector<int>(v.size()));
+            // dp[i][k] := optimal gain amount of array starting at i, of length k
+            vector<vector<int>> dp(v.size(), vector<int>(v.size() + 1));
 
             for (int i = 0; i < dp.size(); ++i)
-                for (int j = 0; j <= i; ++j)
+            {
+                dp[i][1] = v[i];
+                if (i < dp.size() - 1)
+                    dp[i][2] = max(v[i], v[i + 1]);
+            }
+
+            for (int k = 3; k < dp[0].size(); ++k)
+                for (int i = 0; i < dp.size() - k + 1; ++i)
                 {
-                    if (j == 0)
-                        dp[i][j] = v[i];
-                    else if (j == 1)
-                        dp[i][j] = max(v[i], v[i - j]);
-                    else
-                        dp[i][j] = max(
-                            v[i - j] + min(dp[i - 1][j - 2], dp[i][j - 2]),
-                            v[i] + min(dp[i - 1][j - 2], dp[i - 2][j - 2]));
+                    dp[i][k] = max(
+                        v[i] + min(dp[i + 1][k - 2], dp[i + 2][k - 2]),
+                        v[i + k - 1] + min(dp[i][k - 2], dp[i + 1][k - 2]));
                 }
 
             printVector(dp);
-            return dp.back().back();
+            return dp[0].back();
         }
 
         int getMaxGain(const vector<int>& v)
         {
             // assert(!(v.size() % 2));
 
-            // dp[#number of coins][starting coin position]
-            vector<vector<int>> dp(v.size() / 2, vector<int>(v.size()));
+            // dp[i][j] := optimal gain amount of array starting at i, ending at j
+            vector<vector<int>> dp(v.size(), vector<int>(v.size()));
 
-            for (int i = 0; i < dp.size(); ++i) // i*2 => number of coins
-            {
-                int k = (i + 1) * 2;
-                int maxj = dp[0].size() - k;
-                for (int j = 0; j <= maxj; ++j) // j => starting coin position
+            // init the pair-wise values
+            for (int i = 0; i < dp.size() - 1; ++i)
+                dp[i][i + 1] = max(v[i], v[i + 1]);
+
+            for (int k = 4; k <= v.size(); k += 2)
+                for (int i = 0; i < v.size() - k + 1; ++i)
                 {
-                    if (i == 0)
-                    {
-                        dp[i][j] = max(v[j], v[j + 1]);
-                        continue;
-                    }
-
+                    int j = i + k - 1;
                     dp[i][j] = max(
-                        v[j] + min(dp[i - 1][j + 1], dp[i - 1][j + 2]),
-                        v[j + k - 1] + min(dp[i - 1][j], dp[i - 1][j + 1]));
+                        v[i] + min(dp[i + 1][j - 1], dp[i + 2][j]),
+                        v[j] + min(dp[i][j - 2], dp[i + 1][j - 1]));
                 }
-            }
-            
-            printVector(dp);
-            return dp.back()[0];
+
+            return dp[0].back();
         }
 
         void test()
         {
             vector<int> coins = { 25, 5, 10, 5, 10, 5, 10, 25, 1, 25, 1, 25, 1, 25, 5, 10 };
-            VERIFY(140 == getMaxGain_0(coins));
+            //VERIFY(140 == getMaxGain_0(coins));
             VERIFY(140 == getMaxGain(coins));
         }
     };
@@ -2689,5 +2686,5 @@ Constitution for the United States of America.";
         p18().test();
     }
 
-    //REGISTER_RUNNABLE(oth1)
+    REGISTER_RUNNABLE(oth1)
 }

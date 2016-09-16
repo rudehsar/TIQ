@@ -1,12 +1,17 @@
 #include "stdafx.h"
 
-unordered_map<PExtMain, bool> g_extMains;
+extern vector<PExtMain> g_runnables;
 
 int _tmain(int argc, _TCHAR* argv[])
 {
-    for (auto p : g_extMains)
-        if (p.second)
-            (*p.first)();
+    //LOG("&g_runnables " << &g_runnables);
+    //LOG(g_runnables.size());
+
+    for (auto& p : g_runnables)
+    {
+        //LOG("Running" << p);
+        (*p)();
+    }
 
     return 0;
 }

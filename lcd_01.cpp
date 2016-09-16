@@ -7638,5 +7638,5 @@ namespace lcd1
         p022().test();
     }
 
-    REGISTER_RUNNABLE(lcd1)
+    //REGISTER_RUNNABLE(lcd1)
 }
