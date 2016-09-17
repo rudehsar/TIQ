@@ -1,17 +1,15 @@
 #include "stdafx.h"
 
-extern vector<PExtMain> g_runnables;
+vector<PRunnable>& getRunnable()
+{
+    static vector<PRunnable> s_runnables;
+    return s_runnables;
+}
 
 int _tmain(int argc, _TCHAR* argv[])
 {
-    //LOG("&g_runnables " << &g_runnables);
-    //LOG(g_runnables.size());
-
-    for (auto& p : g_runnables)
-    {
-        //LOG("Running" << p);
+    for (auto& p : getRunnable())
         (*p)();
-    }
 
     return 0;
 }

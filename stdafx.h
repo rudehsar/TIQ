@@ -1,7 +1,7 @@
-// stdafx.h : include file for standard system include files,
-// or project specific include files that are used frequently, but
-// are changed infrequently
+// stdafx.h
 //
+// Include file for standard system include files, or project specific include files 
+// that are used frequently, but are changed infrequently.
 
 #pragma once
 
@@ -11,12 +11,11 @@
 // warning C4018: '<': signed/unsigned mismatch
 #pragma warning(disable:4018)
 
-#include "targetver.h"
+//#include "targetver.h"
 
 #include <stdio.h>
 #include <tchar.h>
 
-// TODO: reference additional headers your program requires here
 #include <algorithm>
 #include <condition_variable>
 #include <iterator>
@@ -36,15 +35,15 @@
 
 #include <assert.h>
 
-#include "Utility.h"
-#include "Common.h"
+#include "utility.h"
+#include "common.h"
 
 using namespace std;
 using namespace utl;
 using namespace cmn;
 
-typedef void(*PExtMain)();
-__declspec(selectany) vector<PExtMain> g_runnables;
+typedef void(*PRunnable)();
+vector<PRunnable>& getRunnable();
 
 #define REGISTER_RUNNABLE(x) \
     static void run(); \
@@ -54,14 +53,10 @@ __declspec(selectany) vector<PExtMain> g_runnables;
     public: \
         __register_ ## x() \
         { \
-            g_runnables.push_back(x); \
+            getRunnable().push_back(x); \
         } \
     }; \
     static __register_ ## x __register_ ## x ## _; \
-            //LOG(#x); \
-            //LOG("&g_runnables " << &g_runnables); \
-            //LOG("added " << x); \
-            //LOG(g_runnables.size()); \
 
 #define LOG(x) std::cout << x << std::endl
 
