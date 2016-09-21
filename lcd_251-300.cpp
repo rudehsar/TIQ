@@ -1,7 +1,5 @@
 #include "stdafx.h"
 
-// Get-Content .\LCD_01.cpp | findstr "struct p*" | ?{ $_ -match "struct p(\d+)" } | Measure-Object
-
 namespace lcd6
 {
     /* Factor Combinations */

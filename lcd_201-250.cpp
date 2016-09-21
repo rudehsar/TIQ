@@ -1,5 +1,8 @@
 #include "stdafx.h"
 
+#include <map>
+#include <set>
+
 namespace lcd5
 {
     /* Isomorphic Strings */
@@ -204,6 +207,73 @@ namespace lcd5
 
             i = getKthLargest(v, 25);
             VERIFY(i == v[v.size() - 25]);
+        }
+    };
+
+    /* The Skyline Problem */
+    // LeetCode#218
+    // A city's skyline is the outer contour of the silhouette formed by all the buildings in that city 
+    // when viewed from a distance.
+    struct p218
+    {
+        vector<pair<int, int>> getSkyline(const vector<vector<int>>& buildings)
+        {
+            map<int, vector<pair<int, bool>>> m;
+            for (int i = 0; i < buildings.size(); ++i)
+            {
+                m[buildings[i][0]].push_back(make_pair(buildings[i][2], true));
+                m[buildings[i][1]].push_back(make_pair(buildings[i][2], false));
+            }
+
+            vector<pair<int, int>> r;
+            multiset<int, greater<int>> s;
+            for (auto& p : m)
+            {
+                for (auto& h : p.second)
+                {
+                    if (h.second)
+                        s.insert(h.first);
+                    else
+                        s.erase(s.find(h.first));
+                }
+
+                int h = s.empty() ? 0 : *s.begin();
+                if (r.empty() || (r.back().second != h))
+                    r.emplace_back(p.first, h);
+            }
+
+            return r;
+        }
+
+        void test()
+        {
+            auto r = vector<pair<int, int>>({
+                { 2, 10 },
+                { 3, 15 },
+                { 7, 12 },
+                { 12, 0 },
+                { 15, 10 },
+                { 20, 8 },
+                { 24, 0 },
+            });
+            //VERIFY(r == getSkyline({
+            //    { 2, 9, 10 },
+            //    { 3, 7, 15 },
+            //    { 5, 12, 12 },
+            //    { 15, 20, 10 },
+            //    { 19, 24, 8 },
+            //}));
+
+            r = vector<pair<int, int>>({
+                { 0, 3 },
+                { 7, 0 },
+            });
+            VERIFY(r == getSkyline({
+                { 0, 3, 3 },
+                { 1, 5, 3 },
+                { 2, 4, 3 },
+                { 3, 7, 3 },
+            }));
         }
     };
 
@@ -546,7 +616,7 @@ namespace lcd5
 
     static void run()
     {
-        p249().test();
+        p218().test();
     }
 
     //REGISTER_RUNNABLE(lcd5)

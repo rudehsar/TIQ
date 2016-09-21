@@ -17,6 +17,23 @@ int utl::getElementPrintWidth<string>(const string& x)
     return x.size();
 }
 
+template<>
+int utl::getPrintWidth(const vector<bool>& v)
+{
+    return 2;
+}
+
+template<>
+void utl::printVector(vector<bool> v, int width)
+{
+    cout << "[";
+
+    for (int i = 0; i < v.size(); ++i)
+        cout << setw(width + 1) << right << (v[i] ? "T" : "F");
+
+    cout << setw(width + 1) << right << "]" << endl;
+}
+
 void utl::printVector(const string& s, int width)
 {
     vector<char> sv(s.begin(), s.end());

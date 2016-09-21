@@ -259,19 +259,20 @@ namespace lcd1
     // length of S is 1000, and there exists one unique longest palindromic substring.
     struct p005
     {
-        string getLongestPalindrome(const string& s)
+        string getLongestPalindrome_0(const string& s)
         {
-            vector<vector<int>> dp(s.size(), vector<int>(s.size(), 0));
+            // dp[i][j] palindrome ending at index i of length (j + 1)
+            vector<vector<bool>> dp(s.size(), vector<bool>(s.size()));
 
             // trivial cases
             for (int i = 0; i < dp.size(); ++i)
             {
                 // single char is a palindrome of length 1
-                dp[i][0] = 1;
+                dp[i][0] = true;
 
                 // twins are palindromes of length 2
-                if (i > 0)
-                    dp[i][1] = s[i] == s[i - 1] ? 2 : 0;
+                if ((i > 0) && (s[i] == s[i - 1]))
+                    dp[i][1] = true;
             }
 
             // start from 3rd char with offset 2 since we have already considered offset length
@@ -280,20 +281,88 @@ namespace lcd1
             for (int i = 2; i < dp.size(); ++i)
                 for (int j = 2; j <= i; ++j)
                 {
-                    if ((s[i] == s[i - j]) && (dp[i - 1][j - 2] > 0))
-                        dp[i][j] = dp[i - 1][j - 2] + 2;
-
-                    if (dp[i][j] > mp.second)
-                        mp = { i - j, dp[i][j] };
+                    if ((s[i] == s[i - j]) && (dp[i - 1][j - 2]))
+                    {
+                        dp[i][j] = true;
+                        if (j > mp.second)
+                            mp = { i - j, j };
+                    }
                 }
 
             printVector(dp);
-            return mp.second > 0 ? s.substr(mp.first, mp.second) : "";
+            return mp.second > 0 ? s.substr(mp.first, mp.second + 1) : "";
+        }
+
+        string getLongestPalindrome(const string& s)
+        {
+            // dp[i][j] indicates s[j..i] is a palindrome 
+            vector<vector<bool>> dp(s.size(), vector<bool>(s.size()));
+
+            // longest palindromic string
+            string lp;
+
+            for (int i = 0; i < dp.size(); ++i)
+                for (int j = i; j >= 0; --j)
+                {
+                    if (i == j)
+                        dp[i][j] = true;
+                    else if ((i - j) == 1)
+                        dp[i][j] = s[i] == s[j];
+                    else
+                        dp[i][j] = (s[i] == s[j]) && dp[i - 1][j + 1];
+
+                    // determine longest palindrome
+                    if (dp[i][j] && ((i - j + 1) > lp.size()))
+                        lp = s.substr(j, i - j + 1);
+                }
+
+            return lp;
+        }
+
+        string longestPalindrome(const string& s)
+        {
+            vector<vector<int>> dp(s.size(), vector<int>(2));
+
+            int mi;
+            int mj;
+            int mlen = INT_MIN;
+            int c0 = 0;
+            int c1 = 1;
+            for (int j = 0; j < s.size(); ++j)
+            {
+                for (int i = j; i >= 0; --i)
+                {
+                    if (i == j)
+                        dp[i][c0] = 1;
+                    else if ((j - i) == 1)
+                        dp[i][c0] = s[i] == s[j];
+                    else
+                        dp[i][c0] = (s[i] == s[j]) && dp[i + 1][c1];
+
+                    if ((dp[i][c0]) && ((j - i + 1) > mlen))
+                    {
+                        mi = i, mj = j;
+                        mlen = mj - mi + 1;
+                    }
+                }
+
+                swap(c0, c1);
+            }
+
+            return s.substr(mi, mj - mi + 1);
         }
 
         void test()
         {
-            VERIFY("tacocat" == getLongestPalindrome("footacocatbar"));
+            VERIFY("tacocat" == longestPalindrome("footacocatbar"));
+            VERIFY("aa" == longestPalindrome("aab"));
+            VERIFY("a" == longestPalindrome("a"));
+            VERIFY("cc" == longestPalindrome("ccd"));
+
+            //string t1 = "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd";
+            //LOG(findDuration([&]() {
+            //    VERIFY(t1 == longestPalindrome(t1));
+            //}, 1));
         }
     };
 
@@ -458,7 +527,7 @@ namespace lcd1
             {
                 int i = 0;
                 // try one or more matches
-                while ((s[i] == p[0]) || (p[0] == '.'))
+                while ((i < s.size()) && ((s[i] == p[0]) || (p[0] == '.')))
                 {
                     if (isRegexMatch(s.substr(i + 1), p.substr(2)))
                         return true;
@@ -490,6 +559,7 @@ namespace lcd1
             VERIFY(isRegexMatch("gggoat", ".*t"));
             VERIFY(isRegexMatch("gggoat", ".*t"));
             VERIFY(isRegexMatch("a", "ab*"));
+            VERIFY(!isRegexMatch("aaa", "a*b"));
         }
     };
 
@@ -1096,7 +1166,7 @@ namespace lcd1
                 {
                     if (i >= 0)
                     {
-                        if ((j - i - wlen) >(r.second - r.first + 1))
+                        if ((j - i - wlen) > (r.second - r.first + 1))
                         {
                             r = { i, j - wlen };
                             i = -1;
@@ -1251,25 +1321,27 @@ namespace lcd1
             {
                 int mid = lo + (hi - lo) / 2;
 
+                // *Note* depending left-most or right-most search, we choose left or right
+                // partition in case of equality resp.
                 if (findLeftmost)
                 {
-                    if ((v[mid] == target) && ((mid == 0) || v[mid - 1] < target))
+                    if ((v[mid] == target) && ((mid == 0) || (v[mid - 1] < target)))
                         return mid;
-
-                    if (v[mid] < target)
-                        lo = mid + 1;
-                    else
+                    
+                    if (v[mid] >= target)
                         hi = mid - 1;
+                    else
+                        lo = mid + 1;
                 }
                 else
                 {
-                    if ((v[mid] == target) && ((mid == v.size() - 1) || v[mid + 1] > target))
+                    if ((v[mid] == target) && ((mid == v.size() - 1) || (v[mid + 1] > target)))
                         return mid;
 
-                    if (v[mid] > target)
-                        hi = mid - 1;
-                    else
+                    if (v[mid] <= target)
                         lo = mid + 1;
+                    else
+                        hi = mid - 1;
                 }
             }
 
@@ -1287,6 +1359,7 @@ namespace lcd1
         void test()
         {
             VERIFY((pair<int, int>{3, 4}) == getRange(vector<int>{ 5, 7, 7, 8, 8, 10 }, 8));
+            VERIFY((pair<int, int>{0, 1}) == getRange(vector<int>{ 2, 2 }, 2));
         }
     };
 
@@ -2054,7 +2127,7 @@ namespace lcd1
 
     static void run()
     {
-        //p048().test();
+        p010().test();
     }
 
     //REGISTER_RUNNABLE(lcd1)

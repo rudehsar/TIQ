@@ -14,78 +14,41 @@ namespace lcd8
     //[1, 3], [6, 7]
     struct p352
     {
-        bool treeIsValid(vector<pair<int, int>>& bt, int n)
-        {
-            return (n < bt.size()) && (bt[n].first > INT_MIN);
-        }
+        using interval = pair<int, int>;
 
-        bool treeInsert(vector<pair<int, int>>& bt, int value, int& n)
+        void insertInterval(vector<interval>& v, const interval& i)
         {
-            n = 0;
-            if (bt.empty())
+            if (v.empty())
             {
-                bt.emplace_back(value, value);
-                return true;
+                v.push_back(i);
+                return;
             }
 
-            while (treeIsValid(bt, n))
+            // c => inserted new interval
+            auto c = v.end();
+            // find the 1st interval that's strictly greater than new interval i.e. the new interval
+            // should be inserted there.
+            auto n = upper_bound(v.begin(), v.end(), i, [](auto& x, auto& y) { return x < y; } );
+
+            if ((n != v.end()) && (i.second + 1 >= n->first))
             {
-                if ((bt[n].first <= value) && (bt[n].second >= value))
-                    return false;
+                // merge forward
+                n->first = min(n->first, i.first);
+                n->second = max(n->second, i.second);
 
-                if (bt[n].first == value + 1)
-                {
-                    bt[n].first = value;
-                    return false;
-                }
-
-                if (bt[n].second == value - 1)
-                {
-                    bt[n].second = value;
-                    return false;
-                }
-
-                if (bt[n].first > value)
-                    n = 2 * n + 1;
-                else
-                    n = 2 * n + 2;
+                c = n;
             }
-
-            if (bt.size() < (n + 1))
-                bt.resize(n + 1, { INT_MIN, INT_MIN });
-
-            bt[n].swap(make_pair(value, value));
-            return true;
-        }
-
-        bool treeFind(vector<pair<int, int>>& bt, int value, int& n)
-        {
-            while (treeIsValid(bt, n))
-            {
-                if ((bt[n].first >= value) && (bt[n].second >= value))
-                    return true;
-
-                n = bt[n].first > value ? 2 * n + 1 : 2 * n + 2;
-            }
-
-            return false;
-        }
-
-        void treeDelete(vector<pair<int, int>>& bt, int n)
-        {
-            if (n == bt.size())
-                bt.pop_back();
             else
-                bt[n].first = bt[n].second = INT_MIN;
-        }
+                c = v.insert(n, i);
 
-        void treeInOrderTraverse(vector<pair<int, int>>& bt, vector<pair<int, int>> &p, int n = 0)
-        {
-            if ((n < bt.size()) && (bt[n].first >= 0))
+            auto p = c == v.begin() ? v.end() : c - 1;
+            if ((p != v.end()) && (p->second + 1 >= c->first))
             {
-                treeInOrderTraverse(bt, p, 2 * n + 1);
-                p.push_back(bt[n]);
-                treeInOrderTraverse(bt, p, 2 * n + 2);
+                // merge backward
+                p->first = min(p->first, c->first);
+                p->second = max(p->second, c->second);
+
+                v.erase(c);
             }
         }
 
@@ -93,25 +56,11 @@ namespace lcd8
         {
             vector<vector<pair<int, int>>> r;
 
-            vector<pair<int, int>> bt;
+            vector<pair<int, int>> v;
             for (int i = 0; i < sn.size(); ++i)
             {
-                int n;
-                if (!treeInsert(bt, sn[i], n))
-                {
-                    int m = 2 * n + 1;
-                    if ((bt[n].first == sn[i]) && treeFind(bt, bt[n].first, m) ||
-                        (bt[n].second == sn[i]) && treeFind(bt, bt[n].second, ++m))
-                    {
-                        bt[n].first = min(bt[n].first, bt[m].first);
-                        bt[n].second = max(bt[n].second, bt[m].second);
-                        treeDelete(bt, m);
-                    }
-                }
-
-                vector<pair<int, int>> p;
-                treeInOrderTraverse(bt, p);
-                r.push_back(p);
+                insertInterval(v, { sn[i], sn[i] });
+                r.push_back(v);
             }
 
             return r;
@@ -119,13 +68,13 @@ namespace lcd8
 
         void test()
         {
-            vector<int> v = { 1, 3, 7, 2, 6 };
+            vector<int> v = { 3, 7, 1, 2, 6 };
             auto r = getSummarizedIntervals(v);
             VERIFY(r.size() == v.size());
 
             vector<vector<pair<int, int>>> p{
-                { { 1, 1 } },
-                { { 1, 1 },{ 3, 3 } },
+                { { 3, 3 } },
+                { { 3, 3 },{ 7, 7 } },
                 { { 1, 1 },{ 3, 3 },{ 7, 7 } },
                 { { 1, 3 },{ 7, 7 } },
                 { { 1, 3 },{ 6, 7 } },
@@ -163,50 +112,6 @@ namespace lcd8
 
             return s;
         }
-
-        /*
-        int countNumbersWithUniqueDigits(int n)
-        {
-            int s = 1; // sum
-            int a = 1; // accumulator
-            int f = 9; // factor
-
-            bool skipOnce = true;
-            while (n-- > 0)
-            {
-                a *= f;
-                s += a;
-
-                if (skipOnce)
-                    skipOnce = false;
-                else
-                    --f;
-            }
-
-            return s;
-        }
-        */
-
-        /*
-        int countNumbersWithUniqueDigits(int n)
-        {
-            if (n == 0)
-                return 1;
-
-            if (n == 1)
-                return 10;
-
-            int r = 10;
-            int c = 9;
-            for (int i = 2; i <= n; ++i)
-            {
-                c = c * (10 - i + 1);
-                r += c;
-            }
-
-            return r;
-        }
-        */
 
         void test()
         {
@@ -366,7 +271,7 @@ namespace lcd8
 
     static void run()
     {
-        p375().test();
+        p352().test();
     }
 
     //REGISTER_RUNNABLE(lcd8)

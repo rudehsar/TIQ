@@ -427,7 +427,10 @@ namespace lcd2
             //  => insert after r[lo] and we're done.
             vector<interval> r(v);
             if (r[lo].second >= x.first)
+            {
+                r[lo].first = min(r[lo].first, x.first);
                 r[lo].second = max(r[lo].second, x.second);
+            }
             else
                 r.insert(++lo + r.begin(), x);
 
@@ -483,7 +486,7 @@ namespace lcd2
         }
 
         // simplest, linear scan the array and insert/merge as appropriate
-        vector<interval> insertInterval(const vector<interval>& v, const interval& x)
+        vector<interval> insertInterval_2(const vector<interval>& v, const interval& x)
         {
             if (v.empty())
                 return{ x };
@@ -512,12 +515,40 @@ namespace lcd2
             return r;
         }
 
+        vector<interval> insertInterval(vector<interval> v, const interval& x)
+        {
+            // find the (inclusive) lower bound and insert right before that.
+            auto p = lower_bound(v.begin(), v.end(), x);
+            p = v.insert(p, x);
+
+            // step back to the immediate previous interval if it overlaps to set the point from
+            // where to start merging down
+            if ((p != v.begin()) && ((p - 1)->second >= p->first))
+                --p;
+
+            while (((p + 1) != v.end()) && ((p + 1)->first <= p->second))
+            {
+                p->second = max(p->second, (p + 1)->second);
+                v.erase(p + 1);
+            }
+
+            return v;
+        }
+
         void test()
         {
+            auto f = &p057::insertInterval;
+
+            VERIFY(vector<interval>({
+                { 1, 2 },
+            }) == (this->*f)(vector<interval>({
+            }),
+            { 1, 2 }));
+
             VERIFY(vector<interval>({
                 { 1, 5 },
                 { 6, 9 },
-            }) == insertInterval(vector<interval>({
+            }) == (this->*f)(vector<interval>({
                 { 1, 3 },
                 { 6, 9 },
             }),
@@ -527,7 +558,7 @@ namespace lcd2
                 { 1, 2 },
                 { 3, 10 },
                 { 12, 16 },
-            }) == insertInterval(vector<interval>({
+            }) == (this->*f)(vector<interval>({
                 { 1, 2 },
                 { 3, 5 },
                 { 6, 7 },
@@ -540,11 +571,27 @@ namespace lcd2
                 { 1, 2 },
                 { 3, 5 },
                 { 6, 9 },
-            }) == insertInterval(vector<interval>({
+            }) == (this->*f)(vector<interval>({
                 { 1, 2 },
                 { 6, 9 },
             }),
             { 3, 5 }));
+
+            VERIFY(vector<interval>({
+                { 0, 6 },
+            }) == (this->*f)(vector<interval>({
+                { 1, 5 },
+            }),
+            { 0, 6 }));
+
+            VERIFY(vector<interval>({
+                { 0, 5 },
+                { 7, 16 },
+            }) == (this->*f)(vector<interval>({
+                { 0, 5 },
+                { 9, 12 },
+            }),
+            { 7, 16 }));
         }
     };
 
@@ -856,7 +903,7 @@ namespace lcd2
             return r;
         }
 
-        vector<string> columnFit(const string& s, int columnWidth)
+        vector<string> columnFit_1(const string& s, int columnWidth)
         {
             vector<string> r;
             auto appendLine = [&r](deque<string>& words, int len, int columnWidth)
@@ -904,6 +951,57 @@ namespace lcd2
 
             appendLine(lineWords, len, columnWidth);
             return r;
+        }
+
+        vector<string> columnFit(const string& s, const int columnWidth)
+        {
+            vector<string> words = vector<string>(
+                istream_iterator<string>(istringstream(s)),
+                istream_iterator<string>());
+
+            vector<string> lines;
+            for (int i = 0, k; i < words.size(); i += k)
+            {
+                // pick k words that fits the line
+                k = 0;
+
+                int len = 0;
+                while ((i + k < words.size()) && (len + words[i + k].size() < columnWidth - k))
+                {
+                    len += words[i + k].size();
+                    ++k;
+                }
+
+                string line;
+                if (k > 1)
+                {
+                    // number of spaces to distribute across the words (note, the last word doesn't need any
+                    // trailng spaces, hence k - 1).
+                    string ws((columnWidth - len) / (k - 1), ' ');
+                    // extra spaces that needs to be meted out.
+                    int ns = (columnWidth - len) % (k - 1);
+
+                    // append (k - 1) words with trailing spaces
+                    for (int j = i; j < i + k - 1; ++j)
+                    {
+                        line += words[j];
+                        line += ws;
+                        if ((j - i) < ns)
+                            line += " ";
+                    }
+                }
+
+                // assume all words fit within the column-size
+                // assert(k > 0);
+
+                // append the final word
+                line += words[i + k - 1];
+
+                // add the finished line
+                lines.push_back(line);
+            }
+
+            return lines;
         }
 
         void test()
@@ -1809,8 +1907,8 @@ namespace lcd2
 
     static void run()
     {
-        p097().test();
+        p057().test();
     }
 
-    //REGISTER_RUNNABLE(lcd2)
+    REGISTER_RUNNABLE(lcd2)
 }

@@ -53,6 +53,7 @@ vector<PRunnable>& getRunnable();
     public: \
         __register_ ## x() \
         { \
+            LOG("+" #x); \
             getRunnable().push_back(x); \
         } \
     }; \

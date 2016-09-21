@@ -147,6 +147,135 @@ namespace lcd3
         }
     };
 
+    /* Populating Next Right Pointers in Each Node II */
+    // LeetCode#117
+    // Given a binary tree (of any type), populate each next pointer to point to its next right node. 
+    // If there is no next right node, the next pointer should be set to NULL. Initially, all next 
+    // pointers are set to NULL.
+    // Note:
+    //  You may only use constant extra space.
+    struct p117
+    {
+        struct TreeLinkNode;
+        using PTreeLinkNode = shared_ptr<TreeLinkNode>;
+        struct TreeLinkNode
+        {
+            int data;
+
+            PTreeLinkNode left;
+            PTreeLinkNode right;
+            PTreeLinkNode next;
+        };
+
+        PTreeLinkNode connect(PTreeLinkNode root)
+        {
+            if (!root)
+                return root;
+
+            PTreeLinkNode p;
+            for (PTreeLinkNode n = root->next; n && !p; n = n->next)
+                p = n->left ? n->left : n->right;
+
+            if (root->left)
+                root->left->next = root->right ? root->right : p;
+
+            if (root->right)
+                root->right->next = p;
+
+            // Note, right subtree needs to be processed first to have the parent's next link
+            // properly filled beforehand.
+            connect(root->right);
+            connect(root->left);
+
+            return root;
+        }
+
+        string convert(PTreeLinkNode r, bool includeNext = false)
+        {
+            queue<PTreeLinkNode> q;
+            q.push(r);
+
+            string s;
+            while (!q.empty())
+            {
+                PTreeLinkNode p = q.front();
+                q.pop();
+
+                if (!s.empty())
+                    s += " ";
+
+                if (p)
+                {
+                    s += to_string(p->data);
+
+                    if (includeNext)
+                    {
+                        s += "->";
+                        s += p->next ? to_string(p->next->data) : "#";
+                    }
+
+                    q.push(p->left);
+                    q.push(p->right);
+                }
+                else
+                {
+                    s += " #";
+                }
+            }
+
+            return s;
+        }
+
+        PTreeLinkNode convertHelper(const vector<string>& d, int i)
+        {
+            PTreeLinkNode p;
+
+            if (i >= d.size())
+                return p;
+
+            string s = d[i];
+            if (s != "#")
+            {
+                p = make_shared<TreeLinkNode>();
+                p->data = atoi(s.c_str());
+
+                p->left = convertHelper(d, 2 * i + 1);
+                p->right = convertHelper(d, 2 * i + 2);
+            }
+
+            return p;
+        }
+
+        PTreeLinkNode convert(const string& s)
+        {
+            vector<string> d = vector<string>(
+                istream_iterator<string>(istringstream(s)),
+                istream_iterator<string>());
+
+            return convertHelper(d, 0);
+        }
+
+        void test()
+        {
+            //string i = "1 2 4 # # # 3 # 5";
+            //auto p = convert(i);
+            //auto o = convert(p, false);
+            //VERIFY(i == o);
+
+            //connect(p);
+            //auto co = convert(p, true);
+            //LOG(co);
+
+            //auto p = convert("1 2 3 4 5 # 7");
+            //LOG(convert(p));
+            //LOG(convert(connect(p), true));
+
+            auto p = convert("2 1 3 0 7 9 1 2 # 1 0 # # 8 8 # # # # # 7");
+            //LOG(convert(p));
+            LOG(convert(connect(p), true));
+        }
+    };
+
     /* Binary Tree Maximum Path Sum */
     // LeetCode#124
     // Given a binary tree, find the maximum path sum.
@@ -157,22 +286,31 @@ namespace lcd3
     {
         pair<int, int> getMaximumPathSumHelper(PTreeNode<int>& p)
         {
+            // r.first  path sum ending at root
+            // r.second path sum not necessarily ending at root
+            pair<int, int> r = { p->val, p->val };
+
             if (!p->left && !p->right)
-                return{ p->val, p->val };
+                return r;
 
             if (!p->left || !p->right)
             {
-                auto r = getMaximumPathSumHelper(p->left ? p->left : p->right);
-                return{ r.first + p->val, r.second };
+                auto r1 = getMaximumPathSumHelper(p->left ? p->left : p->right);
+
+                r.first = max(p->val, p->val + r1.first);
+                r.second = max(p->val + r1.first, r1.second);
+            }
+            else
+            {
+                auto r1 = getMaximumPathSumHelper(p->left);
+                auto r2 = getMaximumPathSumHelper(p->right);
+
+                r.first = max(p->val, p->val + max(r1.first, r2.first));
+                r.second = max(p->val + r1.first + r2.first, max(r1.second, r2.second));
             }
 
-            auto r1 = getMaximumPathSumHelper(p->left);
-            auto r2 = getMaximumPathSumHelper(p->right);
-
-            return{
-                max(r1.first, r2.first) + p->val,
-                max(r1.second, r2.second)
-            };
+            r.second = max(r.first, r.second);
+            return r;
         }
 
         int getMaximumPathSum(BinaryTree<int>& b)
@@ -241,6 +379,46 @@ namespace lcd3
             VERIFY(isPalindrome("Red rum, sir, is murder"));
             VERIFY(isPalindrome("a man, a plan, a canal, panama"));
             VERIFY(!isPalindrome("not a palindrome"));
+        }
+    };
+
+    /* Palindrome Partitioning II */
+    // LeetCode#132
+    // Given a string s, partition s such that every substring of the partition is a palindrome. 
+    // Return the minimum cuts needed for a palindrome partitioning of s.
+    // For example, given s = "aab",
+    // Return 1 since the palindrome partitioning ["aa","b"] could be produced using 1 cut.
+    struct p132
+    {
+        int minCut(const string& s)
+        {
+            // dp[i][j] indicates s[i..j] is a palindrome 
+            vector<vector<bool>> dp(s.size(), vector<bool>(s.size()));
+
+            // m[i] min-cuts needed
+            vector<int> m(s.size(), INT_MAX);
+
+            for (int i = 0; i < dp.size(); ++i)
+                for (int j = i; j >= 0; --j)
+                {
+                    if (i == j)
+                        dp[i][j] = true;
+                    else if ((i - j) == 1)
+                        dp[i][j] = s[i] == s[j];
+                    else
+                        dp[i][j] = (s[i] == s[j]) && dp[i - 1][j + 1];
+
+                    // determine min-cut
+                    if (dp[i][j])
+                        m[i] = (j == 0) ? 0 : min(m[i], m[j - 1] + 1);
+                }
+
+            return m.back();
+        }
+
+        void test()
+        {
+            VERIFY(1 == minCut("aab"));
         }
     };
 
@@ -414,6 +592,57 @@ namespace lcd3
         {
             VERIFY(isWordBreakable("leetcode", { "leet", "code" }));
             VERIFY(isWordBreakable("goldmedalwinner", { "go", "gold", "old", "med", "medal", "win", "winner" }));
+        }
+    };
+
+    /* Word Break II */
+    struct p140
+    {
+        vector<string> wordBreak(string s, unordered_set<string>& wordDict)
+        {
+            // dp[i][j] whether s[i..j] is a dictionary word
+            vector<vector<bool>> dp(s.size(), vector<bool>(s.size()));
+
+            // p[i] list of indexes with valid dictionary words ending at i
+            vector<vector<int>> p(s.size());
+
+            for (int j = 0; j < dp[0].size(); ++j)
+                for (int i = j; i >= 0; --i)
+                {
+                    dp[i][j] = wordDict.find(s.substr(i, j - i + 1)) != wordDict.end();
+                    if (dp[i][j])
+                        p[j].push_back(i);
+                }
+
+            vector<string> r;
+            queue<pair<int, string>> q;
+            q.push(make_pair((int)s.size() - 1, ""));
+            while (!q.empty())
+            {
+                auto x = q.front();
+                q.pop();
+
+                for (auto& i : p[x.first])
+                {
+                    string suffix = x.second;
+                    if (!suffix.empty())
+                        suffix = " " + suffix;
+
+                    if (i == 0)
+                        r.push_back(s.substr(i, x.first + 1) + suffix);
+                    else
+                        q.push(make_pair(i - 1, s.substr(i, x.first - i + 1) + suffix));
+                }
+            }
+
+            printVector(r);
+            return r;
+        }
+
+        void test()
+        {
+            VERIFY(vector<string>({ "cats and dog", "cat sand dog" }) ==
+                wordBreak("catsanddog", unordered_set<string>({ "cat", "cats", "and", "sand", "dog" })));
         }
     };
 
@@ -672,7 +901,7 @@ namespace lcd3
 
     static void run()
     {
-        p150().test();
+        p140().test();
     }
 
     //REGISTER_RUNNABLE(lcd3)

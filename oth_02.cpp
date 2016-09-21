@@ -13,12 +13,10 @@ namespace oth2
             {
                 T y = static_cast<T>(sqrt(r * r - x * x));
 
-                T px = x + c.first;
-                T py = y + c.second;
-                v.emplace_back(px + c.first, py);
-                v.emplace_back(px, -py);
-                v.emplace_back(-px, py);
-                v.emplace_back(-px, -py);
+                v.emplace_back(c.first + x, c.second + y);
+                v.emplace_back(c.first + x, c.second - y);
+                v.emplace_back(c.first - x, c.second + y);
+                v.emplace_back(c.first - x, c.second - y);
             }
 
             sort(v.begin(), v.end());
@@ -27,8 +25,26 @@ namespace oth2
 
         void test()
         {
-            //drawCircle<double>(make_pair(0, 0), 10);
-            drawCircle<double>(make_pair(5, 5), 10);
+            // center
+            pair<int, int> c = { 5, 5 };
+            // radius
+            int r = 10;
+            // resolution
+            int res = 1;
+
+            auto v = drawCircle<double>(c, r, res);
+
+            bool verified = true;
+            for (auto& p : v)
+            {
+                double rp = sqrt(pow((p.first - c.first), 2) + pow((p.second - c.second), 2));
+                //LOG(rp);
+
+                if (abs(r - rp) > res)
+                    verified = false;
+            }
+
+            VERIFY(verified);
         }
     };
 
@@ -198,7 +214,7 @@ namespace oth2
                 return -1;
 
             // target index
-            int t = (v.size() - k);
+            int t = v.size() - k;
             int w = 0;
 
             int i = 0;
@@ -1341,11 +1357,6 @@ namespace oth2
         vector<int> getPrimeNumbers(int n)
         {
             vector<int> v(n, 0);
-
-            // TODO use iota
-            //for (int i = 1; i <= n; ++i)
-            //    v[i - 1] = i;
-
             iota(v.begin(), v.end(), 1);
 
             for (int i = 1; i < n / 2; ++i)
@@ -2683,7 +2694,7 @@ Constitution for the United States of America.";
 
     static void run()
     {
-        p18().test();
+        p01().test();
     }
 
     //REGISTER_RUNNABLE(oth2)

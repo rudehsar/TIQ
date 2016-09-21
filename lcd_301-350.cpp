@@ -321,15 +321,15 @@ namespace lcd7
         int getSuperUglyNumber(const vector<int>& primes, int n)
         {
             using pqitem = tuple<int, int, int>;
-
             priority_queue <pqitem, vector<pqitem>, greater<pqitem>> pq;
-            for (int i = 0; i < primes.size(); ++i)
-                pq.emplace(primes[i], primes[i], 0);
 
             vector<int> v;
             v.reserve(n);
-
             v.push_back(1);
+
+            for (int i = 0; i < primes.size(); ++i)
+                pq.emplace(v[0] * primes[i], primes[i], 0);
+
             while (--n > 0)
             {
                 while (get<0>(pq.top()) == v.back())
@@ -443,7 +443,7 @@ namespace lcd7
                 if (m.find(cs - k) != m.end())
                 {
                     int j = m[cs - k] + 1;
-                    if ((r.first < 0) || ((i - j) >(r.second - r.first)))
+                    if ((r.first < 0) || ((i - j) > (r.second - r.first)))
                         r = { j, i };
                 }
 
@@ -554,18 +554,80 @@ namespace lcd7
     // move diagonally or move outside of the boundary.
     struct p329
     {
+        // Backtracking
+        int getMaxIncreasingPathHelper(
+            const vector<vector<int>>& m,
+            int i,
+            int j,
+            vector<vector<bool>>& b,
+            vector<vector<int>>& c)
+        {
+            if (c[i][j] > INT_MIN)
+                return c[i][j];
+
+            const vector<pair<int, int>> d = {
+                { 1,  0 },
+                { 0,  1 },
+                { -1,  0 },
+                { 0, -1 },
+            };
+
+            auto isValidIndex = [&m](int x, int y)
+            {
+                return (x >= 0)
+                    && (x < m.size())
+                    && (y >= 0)
+                    && (y < m[0].size());
+            };
+
+            int p = 0;
+            b[i][j] = true;
+            for (auto& dx : d)
+            {
+                int x = i + dx.first;
+                int y = j + dx.second;
+                if (isValidIndex(x, y) && !b[x][y] && (m[x][y] > m[i][j]))
+                    p = max(p, getMaxIncreasingPathHelper(m, x, y, b, c));
+            }
+
+            b[i][j] = false;
+            c[i][j] = p + 1;
+
+            return c[i][j];
+        }
+
         int getMaxIncreasingPath(const vector<vector<int>>& m)
         {
-            // TODO
-            return 0;
+            int l = 0;
+            vector<vector<bool>> b(m.size(), vector<bool>(m[0].size()));
+            vector<vector<int>> c(m.size(), vector<int>(m[0].size(), INT_MIN));
+            for (int i = 0; i < m.size(); ++i)
+                for (int j = 0; j < m[0].size(); ++j)
+                {
+                    l = max(l, getMaxIncreasingPathHelper(m, i, j, b, c));
+                }
+
+            return l;
         }
 
         void test()
         {
-            VERIFY(0 == getMaxIncreasingPath({
-                { 0, 0, 0 },
-                { 0, 0, 0 },
-                { 0, 0, 0 },
+            VERIFY(4 == getMaxIncreasingPath({
+                { 3, 4, 5 },
+                { 3, 2, 6 },
+                { 2, 2, 1 },
+            }));
+
+            VERIFY(4 == getMaxIncreasingPath({
+                { 9, 9, 4 },
+                { 6, 6, 8 },
+                { 2, 1, 1 },
+            }));
+
+            VERIFY(6 == getMaxIncreasingPath({
+                { 7, 8, 9 },
+                { 9, 7, 6 },
+                { 7, 2, 3 },
             }));
         }
     };
@@ -690,7 +752,7 @@ namespace lcd7
 
     static void run()
     {
-        p345().test();
+        p329().test();
     }
 
     //REGISTER_RUNNABLE(lcd7)

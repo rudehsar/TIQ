@@ -22,12 +22,16 @@ namespace utl
     int getElementPrintWidth<int>(const int& x);
     template<>
     int getElementPrintWidth<string>(const string& x);
-    
+
     template<typename T>
     int getPrintWidth(const vector<T>& v);
+    template<>
+    int getPrintWidth(const vector<bool>& v);
 
     template<typename T>
     void printVector(vector<T> v, int width = 0);
+    template<>
+    void printVector(vector<bool> v, int width);
     template<typename T>
     void printVector(vector<vector<T>> m, int width = 0);
     void printVector(const string& s, int width = 0);
@@ -85,6 +89,7 @@ namespace utl
     }
     */
 
+    // Return elapsed duration in us (MicroSeconds).
     template<typename T>
     double findDuration(T callback, long loopCount, int maxWaitInSeconds)
     {

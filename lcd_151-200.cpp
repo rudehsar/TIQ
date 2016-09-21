@@ -640,10 +640,12 @@ namespace lcd4
     // before you buy again).
     struct p188
     {
-        int getMaxProfit(const vector<int>& v, int k)
+        int getMaxProfit(const vector<int>& v, int tx)
         {
-            vector<vector<int>> dp(k + 1, vector<int>(v.size()));
+            if (v.size() < 2)
+                return 0;
 
+            vector<vector<int>> dp(tx + 1, vector<int>(v.size()));
             for (int k = 1; k < dp.size(); ++k)
             {
                 // Let
@@ -652,7 +654,7 @@ namespace lcd4
                 // Then (we have a recurring formula for computing T_i as,
                 //  T_i+ = Max { T_i, dp[k - 1][i] - v[i] } + v[i+]
 
-                int pv = dp[k - 1][0] - v[0];
+                int pv = INT_MIN;
                 for (int i = 1; i < dp[0].size(); ++i)
                 {
                     // Note, this is equivalent to the following
@@ -675,6 +677,8 @@ namespace lcd4
             //VERIFY(0 == getMaxProfit({ 100, 90, 80, 70, 60 }, 1));
             //VERIFY(4 == getMaxProfit({ 8, 3, 6, 4, 7 }, 1));
             VERIFY(10 == getMaxProfit({ 2, 5, 7, 1, 4, 3, 1, 3 }, 3));
+            VERIFY(0 == getMaxProfit({}, 1));
+            VERIFY(1 == getMaxProfit({ 1, 2 }, 1));
         }
     };
 
@@ -878,7 +882,7 @@ namespace lcd4
 
     static void run()
     {
-        p198().test();
+        p188().test();
     }
 
     //REGISTER_RUNNABLE(lcd4)
