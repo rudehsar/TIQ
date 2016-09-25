@@ -4,17 +4,17 @@
 #include <iostream>
 #include <iomanip>
 #include <random>
-
 using namespace std;
 
-#include "Common.h"
-
+#include "common.h"
 using namespace cmn;
 
 namespace utl
 {
     template<typename T>
     double findDuration(T callback, long loopCount = 0, int maxWaitInSeconds = 1);
+
+    string getTimestamp();
 
     template<typename T>
     int getElementPrintWidth(const T& x);

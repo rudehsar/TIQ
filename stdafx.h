@@ -19,7 +19,9 @@
 #include <algorithm>
 #include <condition_variable>
 #include <iterator>
+#include <fstream>
 #include <functional>
+#include <future>
 #include <list>
 #include <memory>
 #include <mutex>
@@ -29,6 +31,7 @@
 #include <sstream>
 #include <stack>
 #include <string>
+#include <thread>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>

@@ -1,5 +1,6 @@
 #include "stdafx.h"
-#include "Utility.h"
+#include "utility.h"
+#include <windows.h>
 
 template<>
 int utl::getElementPrintWidth<int>(const int& x)
@@ -127,4 +128,38 @@ void utl::printBinaryTree(BinaryTree<int>& b)
 
     //    cout << endl;
     //}
+}
+
+string utl::getTimestamp()
+{
+    using namespace std::chrono;
+
+    // get now
+    auto td = system_clock::now().time_since_epoch();
+
+    // extract time parts
+    int ts[] = { 0, 0, 0, 0 };
+    auto h = duration_cast<hours>(td);
+    ts[0] = h.count() % 24;
+    td -= h;
+    auto m = duration_cast<minutes>(td);
+    ts[1] = m.count();
+    td -= m;
+    auto s = duration_cast<seconds>(td);
+    ts[2] = static_cast<int>(s.count());
+    td -= s;
+    auto l = duration_cast<milliseconds>(td);
+    ts[3] = static_cast<int>(l.count());
+    td -= l;
+
+    int ti = static_cast<int>(GetCurrentThreadId());
+
+    // get the required buffer size (+ terminating null)
+    int len = snprintf(nullptr, 0, "%02d:%02d:%02d.%03d [%05d]", ts[0], ts[1], ts[2], ts[3], ti) + 1;
+
+    // format string
+    unique_ptr<char[]> pb(new char[len]);
+    snprintf(pb.get(), len, "%02d:%02d:%02d.%03d [%05d]", ts[0], ts[1], ts[2], ts[3], ti);
+
+    return string(pb.get());
 }

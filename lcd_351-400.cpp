@@ -83,6 +83,99 @@ namespace lcd8
         }
     };
 
+    /* Russian Doll Envelopes */
+    // LeetCode#354
+    // You have a number of envelopes with widths and heights given as a pair of integers (w, h). One 
+    // envelope can fit into another if and only if both the width and height of one envelope is greater 
+    // than the width and height of the other envelope.
+    // What is the maximum number of envelopes can you Russian doll? (put one inside other)
+    // Example:
+    //  Given envelopes = [[5,4],[6,4],[6,7],[2,3]], the maximum number of envelopes you can Russian 
+    // doll is 3 ([2,3] => [5,4] => [6,7]).
+    struct p354
+    {
+        int maxEnvelopes(vector<pair<int, int>> envelopes)
+        {
+            // sort by ascending width, descending height
+            sort(envelopes.begin(), envelopes.end(), [](auto& x, auto& y)
+            {
+                return (x.first == y.first)
+                    ? y.second < x.second
+                    : x.first < y.first;
+            });
+
+            // find max increasing subsequence based on height
+            vector<int> r;
+            for (auto& i : envelopes)
+            {
+                auto j = lower_bound(r.begin(), r.end(), i.second);
+                if (j == r.end())
+                    r.push_back(i.second);
+                else
+                    *j = i.second;
+            }
+
+            return r.size();
+        }
+
+        void test()
+        {
+            VERIFY(0 == maxEnvelopes({
+            }));
+
+            VERIFY(4 == maxEnvelopes({
+                { 5, 4 },
+                { 6, 4 },
+                { 6, 7 },
+                { 2, 3 },
+                { 8, 8 },
+                { 4, 2 },
+            }));
+
+            VERIFY(3 == maxEnvelopes({
+                { 30, 50 },
+                { 12, 2 },
+                { 3, 4 },
+                { 12, 15 },
+            }));
+
+            VERIFY(7 == maxEnvelopes({
+                { 1, 2 },
+                { 2, 3 },
+                { 3, 4 },
+                { 3, 5 },
+                { 4, 5 },
+                { 5, 5 },
+                { 5, 6 },
+                { 6, 7 },
+                { 7, 8 },
+            }));
+
+            VERIFY(5 == maxEnvelopes({
+                { 15,  8 },
+                {  2, 20 },
+                {  2, 14 },
+                {  4, 17 },
+                {  8, 19 },
+                {  8,  9 },
+                {  5,  7 },
+                { 11, 19 },
+                {  8, 11 },
+                { 13, 11 },
+                {  2, 13 },
+                { 11, 19 },
+                {  8, 11 },
+                { 13, 11 },
+                {  2, 13 },
+                { 11, 19 },
+                { 16,  1 },
+                { 18, 13 },
+                { 14, 17 },
+                { 18, 19 },
+            }));
+        }
+    };
+
     /* Count Numbers with Unique Digits */
     // LeetCode#357
     // Given a non-negative integer n, count all numbers with unique digits, x, where 0 = x < 10n.
@@ -269,9 +362,81 @@ namespace lcd8
         }
     };
 
+    /* Insert Delete GetRandom O(1) */
+    // LeetCode#380
+    // Design a data structure that supports all following operations in average O(1) time.
+    // insert(val): Inserts an item val to the set if not already present.
+    // remove(val): Removes an item val from the set if present.
+    // getRandom: Returns a random element from current set of elements. Each element must have the 
+    // same probability of being returned.
+    struct p380
+    {
+        class RandomSet
+        {
+        public:
+            bool insert(const int x)
+            {
+                if (m_values.find(x) != m_values.end())
+                    return false;
+
+                m_slots.push_back(x);
+                m_values[x] = m_slots.size() - 1;
+
+                return true;
+            }
+
+            bool remove(const int x)
+            {
+                if (m_values.find(x) == m_values.end())
+                    return false;
+
+                m_values[m_slots.back()] = m_values[x];
+                swap(m_slots[m_values[x]], m_slots.back());
+
+                m_values.erase(x);
+                m_slots.pop_back();
+
+                return true;
+            }
+
+            const int get()
+            {
+                return m_slots[uniform_int_distribution<>(0, m_slots.size() - 1)(m_eng)];
+            }
+
+        private:
+            unordered_map<int, int> m_values;
+            vector<int> m_slots;
+            default_random_engine m_eng = default_random_engine(random_device()());
+        };
+
+        void test()
+        {
+            RandomSet rs;
+
+            VERIFY(rs.insert(0));
+            VERIFY(rs.insert(1));
+            VERIFY(rs.remove(0));
+            VERIFY(rs.insert(2));
+            VERIFY(rs.remove(1));
+            VERIFY(2 == rs.get());
+            VERIFY(rs.remove(2));
+
+            VERIFY(rs.insert(0));
+            VERIFY(rs.insert(1));
+
+            vector<int> f(2);
+            for (int i = 0; i < 10000; ++i)
+                ++f[rs.get()];
+
+            printVector(f);
+            VERIFY((int)round(f[0] / 1000.0) == 5);
+        }
+    };
+
     static void run()
     {
-        p352().test();
+        p380().test();
     }
 
     //REGISTER_RUNNABLE(lcd8)

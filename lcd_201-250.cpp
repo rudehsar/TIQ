@@ -369,6 +369,45 @@ namespace lcd5
         }
     };
 
+    /* Sliding Window Maximum */
+    // LeetCode#239
+    // Given an array nums, there is a sliding window of size k which is moving from the very left of 
+    // the array to the very right. You can only see the k numbers in the window. Each time the sliding 
+    // window moves right by one position.
+    // For example,
+    // Given nums = [1,3,-1,-3,5,3,6,7], and k = 3.
+    // Therefore, return the max sliding window as [3,3,5,5,6,7]
+    struct p239
+    {
+        vector<int> maxSlidingWindow(const vector<int>& nums, int k)
+        {
+            vector<int> r;
+
+            deque<pair<int, int>> dq;
+            for (int i = 0; i < nums.size(); ++i)
+            {
+                while (!dq.empty() && (dq.back().first < nums[i]))
+                    dq.pop_back();
+
+                dq.emplace_back(nums[i], i);
+
+                if (i - dq.front().second + 1 > k)
+                    dq.pop_front();
+
+                if (i >= k - 1)
+                    r.push_back(dq.front().first);
+            }
+
+            return r;
+        }
+
+        void test()
+        {
+            VERIFY(vector<int>({ 3, 3, 5, 5, 6, 7 })
+                == maxSlidingWindow({ 1, 3, -1, -3, 5, 3, 6, 7 }, 3));
+        }
+    };
+
     /* Valid Anagram */
     // LeetCode#242
     // Given two strings s and t, write a function to determine if t is an anagram of s.
@@ -616,7 +655,7 @@ namespace lcd5
 
     static void run()
     {
-        p218().test();
+        p239().test();
     }
 
     //REGISTER_RUNNABLE(lcd5)

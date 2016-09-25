@@ -1826,6 +1826,44 @@ namespace lcd1
         }
     };
 
+    /* Trapping Rain Water */
+    // LeetCode#42
+    // Given n non-negative integers representing an elevation map where the width of each bar is 1, 
+    // compute how much water it is able to trap after raining.
+    // For example, 
+    // Given [0,1,0,2,1,0,1,3,2,1,2,1], return 6.
+    struct p042
+    {
+        int trap(const vector<int>& height)
+        {
+            if (height.empty())
+                return 0;
+
+            vector<int> lmx(height.size());
+            lmx[0] = height[0];
+            for (int i = 1; i < lmx.size(); ++i)
+                lmx[i] = max(lmx[i - 1], height[i]);
+
+            vector<int> rmx(height.size());
+            rmx[rmx.size() - 1] = height[height.size() - 1];
+            for (int i = rmx.size() - 2; i >= 0; --i)
+                rmx[i] = max(rmx[i + 1], height[i]);
+
+            int r = 0;
+            for (int i = 0; i < height.size(); ++i)
+                r += max(min(lmx[i], rmx[i]) - height[i], 0);
+
+            return r;
+        }
+
+        void test()
+        {
+            VERIFY(0 == trap({}));
+            VERIFY(6 == trap({ 0, 1, 0, 2, 1, 0, 1, 3, 2, 1, 2, 1 }));
+            VERIFY(2 == trap({ 2, 0, 2 }));
+        }
+    };
+
     /* Wildcard Matching */
     // LeetCode#44
     // '?' Matches any single character.
@@ -2127,7 +2165,7 @@ namespace lcd1
 
     static void run()
     {
-        p010().test();
+        p042().test();
     }
 
     //REGISTER_RUNNABLE(lcd1)

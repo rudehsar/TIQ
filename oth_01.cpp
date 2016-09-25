@@ -1,9 +1,30 @@
 ﻿#include "stdafx.h"
 
-#include <thread> // Threading
-#include <fstream> // File-IO
-
 #define FREQ_IDX(b, i) ((b) << 1) | (i)
+
+mutex s_loggerLock;
+int s_maxLogLevel = 0;
+
+#define TLOG(x) \
+    do { \
+        lock_guard<mutex> lock(s_loggerLock); \
+        LOG( \
+            getTimestamp() \
+            << " " \
+            << x \
+            << " (" << __FUNCTION__ << "@" <<__LINE__ << ")"); \
+    } while (0) 
+
+#define TLOG1(x) \
+    do { \
+        if (s_maxLogLevel >= 1) \
+            TLOG(x); \
+    } while (0)
+
+#define ASSERT(x) do { \
+        if (!x) \
+            TLOG("!!! assert FAILED (" ## #x ## ")"); \
+    } while (0)
 
 namespace oth1
 {
@@ -980,81 +1001,148 @@ namespace oth1
     // Implement Reader-Writer Lock
     namespace p13
     {
-        // Using two mutexes, weak priority to readers
+        //
+        // First readers-writers problem (readers-preference)
+        //
+
+        // Using two mutexes and a condition variable, weak priority to readers
         class RWLock1
         {
         public:
+            RWLock1() :
+                nreaders(0)
+            {
+            }
+
             void EnterRead()
             {
+                TLOG1("enter read");
+
                 lock_guard<mutex> lock(m_rlock);
                 ++nreaders;
+                TLOG1("acquired rlock, nreaders=" << nreaders);
 
                 if (nreaders == 1)
-                    m_wlock.lock();
+                {
+                    lock_guard<mutex> lock(m_wlock);
+                    TLOG1("first reader, acquired wlock once");
+                }
             }
 
             void LeaveRead()
             {
+                TLOG1("leave read");
+
                 lock_guard<mutex> lock(m_rlock);
                 --nreaders;
+                TLOG1("acquired rlock, nreaders=" << nreaders);
 
                 if (nreaders == 0)
-                    m_wlock.unlock();
+                {
+                    TLOG1("last reader, signal waiting writer (if any)");
+                    m_cv.notify_one();
+                }
             }
 
             void EnterWrite()
             {
+                TLOG1("enter write");
+
+                unique_lock<mutex> lock(m_rlock);
+                while (nreaders > 0)
+                {
+                    TLOG1("waiting on readers");
+                    m_cv.wait(lock);
+                }
+
                 m_wlock.lock();
+                TLOG1("acquired wlock");
+
+                ASSERT(nreaders == 0);
             }
 
             void LeaveWrite()
             {
+                TLOG1("leave write");
+
                 m_wlock.unlock();
+                TLOG1("released wlock");
             }
 
         private:
             mutex m_rlock;
             mutex m_wlock;
+            condition_variable m_cv;
 
             int nreaders;
         };
 
+        //
+        // Second reader-writers probelm (writers-preference)
+        //
+
         // Using two mutexes, strong priority to writers
-        class RWLock1a
+        class RWLock2a
         {
         public:
+            RWLock2a() :
+                nreaders(0)
+            {
+            }
+
             void EnterRead()
             {
-                {
-                    // queue behind writers
-                    lock_guard<mutex> lock(m_wlock);
-                }
+                TLOG1("entering read");
 
-                lock_guard<mutex> lock(m_rlock);
+                TLOG1("queue behind writers (if any)");
+                lock_guard<mutex> wlock(m_wlock);
+
+                lock_guard<mutex> rlock(m_rlock);
                 ++nreaders;
+                TLOG1("acquired rlock, nreaders=" << nreaders);
+
+                TLOG1("entered read");
             }
 
             void LeaveRead()
             {
+                TLOG1("leaving read");
+
                 lock_guard<mutex> lock(m_rlock);
                 --nreaders;
+                TLOG1("acquired rlock, nreaders=" << nreaders);
 
                 if (nreaders == 0)
+                {
+                    TLOG1("last reader, signal waiting writer (if any)");
                     m_cv.notify_one();
+                }
+
+                TLOG1("left read");
             }
 
             void EnterWrite()
             {
+                TLOG1("entering write");
                 m_wlock.lock();
 
                 unique_lock<mutex> lock(m_rlock);
                 while (nreaders > 0)
+                {
+                    TLOG1("waiting on readers");
                     m_cv.wait(lock);
+                }
+
+                TLOG1("entered write");
             }
 
             void LeaveWrite()
             {
+                TLOG1("leaving write");
                 m_wlock.unlock();
+                TLOG1("released wlock");
+
+                TLOG1("left write");
             }
 
         private:
@@ -1066,52 +1154,107 @@ namespace oth1
         };
 
         // Using a single mutex and condition variable
-        class RWLock2
+        class RWLock2b
         {
         public:
+            RWLock2b() :
+                rp(0),
+                rw(0),
+                ww(0),
+                wp(false)
+            {
+            }
+
             void EnterRead()
             {
-                unique_lock<mutex> lock(m_lock);
+                TLOG1("entering read");
 
+                unique_lock<mutex> lock(m_lock);
                 ++rw;
-                while (wp || ww || (rp == rmax))
+                TLOG1("acquired lock, " << _getState());
+
+                while (_isWriteInProgress() || _isReaderFull() || _isWriterWaiting())
+                {
+                    TLOG1("waiting, " << _getState());
                     m_cv.wait(lock);
+                }
 
                 --rw;
                 ++rp;
+                TLOG1("entered read, " << _getState());
             }
 
             void LeaveRead()
             {
+                TLOG1("leaving read");
+
                 unique_lock<mutex> lock(m_lock);
                 --rp;
+                TLOG1("acquired lock, " << _getState());
 
-                if ((rp == 0) && ww)
-                    m_cv.notify_one();
+                if (!_isReadInProgress() && (_isWriterWaiting() || _isReaderWaiting()))
+                {
+                    TLOG1("last reader, signal waiting writer (if any)");
+                    m_cv.notify_all();
+                }
+
+                TLOG1("left read");
             }
 
             void EnterWrite()
             {
+                TLOG1("entering write");
                 unique_lock<mutex> lock(m_lock);
+                ++ww;
 
-                ww = true;
-                while (wp || (rp > 0))
-                    m_cv.wait(lock);
+                while (_isWriteInProgress() || _isReadInProgress())
+                {
+                    TLOG1("waiting, " << _getState());
+                      m_cv.wait(lock);
+                }
 
-                ww = false;
+                --ww;
                 wp = true;
+
+                TLOG1("entered write, " << _getState());
             }
 
             void LeaveWrite()
             {
+                TLOG1("leaving write");
+
                 unique_lock<mutex> lock(m_lock);
                 wp = false;
 
-                if (ww || rw)
+                if (_isWriterWaiting() || _isReaderWaiting())
+                {
+                    TLOG1("waiting, " << _getState());
                     m_cv.notify_all();
+                }
+
+                TLOG1("left write, " << _getState());
             }
 
         private:
+            bool _isWriteInProgress() { return wp; }
+            bool _isReadInProgress() { return rp > 0; }
+            bool _isWriterWaiting() { return ww > 0; }
+            bool _isReaderWaiting() { return rw > 0; }
+            bool _isReaderFull() { return rp == rmax; }
+
+            string _getState()
+            {
+                return "state [rw=" +
+                    to_string(rw) +
+                    ",rp=" +
+                    to_string(rp) +
+                    ",ww=" +
+                    to_string(ww) +
+                    ",wp=" +
+                    to_string(wp) +
+                    "]";
+            }
+
             mutex m_lock;
             condition_variable m_cv;
 
@@ -1126,20 +1269,38 @@ namespace oth1
             // write-in-progress
             bool wp;
             // writer waiting
-            bool ww;
+            int ww;
         };
 
-        // Using a single mutex and two condition variables
+        //
+        // Third readers-writers problem (fair)
+        //
+
+        // Fair reader-writer lock
         class RWLock3
         {
         public:
+            RWLock3() :
+                rp(0),
+                rw(0),
+                ww(0),
+                wp(false),
+                lw(false)
+            {
+            }
+
             void EnterRead()
             {
                 unique_lock<mutex> lock(m_lock);
+                ++rw;
 
-                while (wp || (rp == rmax))
-                    m_cvw.wait(lock);
+                while (_isWriteInProgress() || _isReaderFull())
+                    m_cv.wait(lock);
 
+                while (_isWriterWaiting() && !_isLastOwnerWriter())
+                    m_cv.wait(lock);
+
+                --rw;
                 ++rp;
             }
 
@@ -1148,137 +1309,141 @@ namespace oth1
                 unique_lock<mutex> lock(m_lock);
                 --rp;
 
-                if ((rp == 0) && wp)
-                    m_cvr.notify_one();
+                lw = false;
 
-                if (rp == (rmax - 1))
-                    m_cvw.notify_all();
+                if (!_isReadInProgress() && (_isWriterWaiting() || _isReaderWaiting()))
+                    m_cv.notify_all();
             }
 
             void EnterWrite()
             {
                 unique_lock<mutex> lock(m_lock);
-
-                while (wp)
-                    m_cvw.wait(lock);
-
-                wp = true;
-
-                while (rp > 0)
-                    m_cvr.wait(lock);
-            }
-
-            void LeaveWrite()
-            {
-                {
-                    unique_lock<mutex> lock(m_lock);
-                    wp = false;
-                }
-
-                m_cvw.notify_all();
-            }
-
-        private:
-            mutex m_lock;
-
-            // signal last reader left
-            condition_variable m_cvr;
-
-            // signal write done or reader space availability
-            condition_variable m_cvw;
-
-            // read-in-progress
-            int rp;
-
-            // max readers
-            int rmax = 3;
-
-            // write-in-progress
-            bool wp;
-        };
-
-        // Fair reader-writer lock
-        class RWLock4
-        {
-        public:
-            void EnterReader()
-            {
-                unique_lock<mutex> lock(m_lock);
-
-                ++rw;
-                while (wp || (nr == 3))
-                    m_cv.wait(lock);
-
-                while ((ww > 0) && !lw)
-                    m_cv.wait(lock);
-
-                --rw;
-                ++nr;
-            }
-
-            void LeaveReader()
-            {
-                unique_lock<mutex> lock(m_lock);
-
-                --nr;
-                lw = false;
-
-                if ((nr == 0) || (nr == (rmax - 1)))
-                    m_cv.notify_all();
-            }
-
-            void EnterWriter()
-            {
-                unique_lock<mutex> lock(m_lock);
-
                 ++ww;
-                while (nr > 0)
+
+                while (_isWriteInProgress() || _isReadInProgress())
                     m_cv.wait(lock);
 
-                while ((rw > 0) && lw)
+                while (_isReaderWaiting() && _isLastOwnerWriter())
                     m_cv.wait(lock);
 
                 --ww;
                 wp = true;
             }
 
-            void LeaveWriter()
+            void LeaveWrite()
             {
                 unique_lock<mutex> lock(m_lock);
-
                 wp = false;
+
                 lw = true;
 
-                m_cv.notify_all();
+                if (_isWriterWaiting() || _isReaderWaiting())
+                    m_cv.notify_all();
             }
 
         private:
+            bool _isWriteInProgress() { return wp; }
+            bool _isReadInProgress() { return rp > 0; }
+            bool _isWriterWaiting() { return ww > 0; }
+            bool _isReaderWaiting() { return rw > 0; }
+            bool _isReaderFull() { return rp == rmax; }
+            bool _isLastOwnerWriter() { return lw; }
+
             mutex m_lock;
             condition_variable m_cv;
 
-            int nr;
-            int rmax = 3;
-            bool wp;
-
-            bool lw;
-
+            // read-in-progress
+            int rp;
+            // reader waiting
             int rw;
+
+            // max readers
+            int rmax = 3;
+
+            // write-in-progress
+            bool wp;
+            // writer waiting
             int ww;
+
+            // write resource user was a writer
+            bool lw;
         };
 
-        template<typename T>
-        class ConcurrentVector
+        void demo()
         {
-        public:
+            auto simsec = 25ms;
+            int Nsimsec = 50;
+            int Nreaders = 5;
+            int Nwriters = 2;
+            string message = "His throne extends over the heavens and the earth";
 
+            RWLock1 rwl;
 
-        private:
-            mutex m_lock;
-            int m_nreaders;
-            int m_nwriters;
+            bool abort = false;
 
-            vector<T> m_inner;
-        };
+            vector<char> wb;
+            int wp = 0;
+
+            auto r = [&]() {
+                vector<char> b;
+                int i = 0;
+
+                while (!abort)
+                {
+                    rwl.EnterRead();
+
+                    int n = getRandom(1, 3);
+                    while ((n-- > 0) && (i < wb.size()))
+                    {
+                        TLOG("reading " << wb[i]);
+
+                        b.push_back(wb[i++]);
+                        this_thread::sleep_for(simsec);
+                    }
+
+                    rwl.LeaveRead();
+
+                    this_thread::sleep_for(simsec);
+                }
+
+                TLOG("read buffer: " << string(b.begin(), b.end()).c_str());
+            };
+
+            auto w = [&]() {
+                while (!abort)
+                {
+                    rwl.EnterWrite();
+
+                    int n = getRandom(1, 5);
+                    while ((n-- > 0) && (wp < message.size()))
+                    {
+                        TLOG("writing " << message[wp]);
+
+                        wb.push_back(message[wp++]);
+                        this_thread::sleep_for(simsec);
+                    }
+
+                    rwl.LeaveWrite();
+
+                    this_thread::sleep_for(simsec);
+                }
+
+                TLOG("write buffer: " << string(wb.begin(), wb.end()).c_str());
+            };
+
+            vector<future<void>> f;
+            for (int i = 0; i < Nreaders; ++i)
+                f.push_back(async(r));
+
+            for (int i = 0; i < Nwriters; ++i)
+                f.push_back(async(w));
+
+            this_thread::sleep_for(simsec * Nsimsec);
+            abort = true;
+
+            for (auto& x : f)
+                x.get();
+        }
     }
 
     // Implement File-IO
@@ -2324,8 +2489,8 @@ namespace oth1
 
     static void run()
     {
-        p17::demo();
+        p13::demo();
     }
 
-    //REGISTER_RUNNABLE(oth1)
+    REGISTER_RUNNABLE(oth1)
 }

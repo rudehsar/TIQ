@@ -276,6 +276,48 @@ namespace lcd6
         }
     };
 
+    /* Find the Duplicate Number */
+    // LeetCode#287
+    // Given an array nums containing n + 1 integers where each integer is between 1 and n 
+    // (inclusive), prove that at least one duplicate number must exist. Assume that there is only one 
+    // duplicate number, find the duplicate one.
+    struct p287
+    {
+        int findDuplicate(const vector<int>& n)
+        {
+            int sp = 0;
+            int fp = 0;
+            
+            // Get into the loop. Since the array doesn't contain 0, any swap loop that contains
+            // the number sitting at 0'th position MUST contain the deplicate.
+            do
+            {
+                sp = n[sp];
+                fp = n[n[fp]];
+            } while (sp != fp);
+
+            // Let's reset and rerun the pointers but single step until they are both pointing
+            // at the entry point of the cycle, hence a pair of duplicates.
+            sp = 0;
+            do
+            {
+                sp = n[sp];
+                fp = n[fp];
+            } while (sp != fp);
+
+            return sp == fp ? sp : n[sp];
+        }
+
+        void test()
+        {
+            VERIFY(4 == findDuplicate({ 4, 1, 3, 2, 4 }));
+            VERIFY(3 == findDuplicate({ 4, 1, 3, 2, 3 }));
+            VERIFY(1 == findDuplicate({ 1, 1, 3, 2, 4 }));
+            VERIFY(2 == findDuplicate({ 1, 3, 4, 2, 2 }));
+            VERIFY(1 == findDuplicate({ 1, 3, 4, 2, 1 }));
+        }
+    };
+
     /* Word Pattern II */
     // LeetCode#291
     // Given a pattern and a string str, find if str follows the same pattern. Here follow means a 
@@ -697,7 +739,7 @@ namespace lcd6
 
     static void run()
     {
-        p299().test();
+        p287().test();
     }
 
     //REGISTER_RUNNABLE(lcd6)

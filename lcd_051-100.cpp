@@ -1910,5 +1910,5 @@ namespace lcd2
         p057().test();
     }
 
-    REGISTER_RUNNABLE(lcd2)
+    //REGISTER_RUNNABLE(lcd2)
 }

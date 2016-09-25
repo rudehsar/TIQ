@@ -356,6 +356,41 @@ namespace lcd7
         }
     };
 
+    /* Count of Smaller Numbers After Self */
+    // LeetCode#315
+    // You are given an integer array nums and you have to return a new counts array. The counts 
+    // array has the property where counts[i] is the number of smaller elements to the right of nums[i].
+    // Example:
+    // Given nums = [5, 2, 6, 1]
+    // To the right of 5 there are 2 smaller elements (2 and 1).
+    // To the right of 2 there is only 1 smaller element (1).
+    // To the right of 6 there is 1 smaller element (1).
+    // To the right of 1 there is 0 smaller element.
+    // Return the array [2, 1, 1, 0].
+    struct p315
+    {
+        vector<int> countSmaller(const vector<int>& nums)
+        {
+            vector<int> r(nums.size());
+
+            vector<int> sq;
+            for (int i = nums.size() - 1; i >= 0; --i)
+            {
+                auto it = lower_bound(sq.begin(), sq.end(), nums[i]);
+                it = sq.insert(it, nums[i]);
+                r[i] = it - sq.begin();
+            }
+
+            return r;
+        }
+
+        void test()
+        {
+            VERIFY(vector<int>({ 2, 1, 1, 0 }) == countSmaller({ 5, 2, 6, 1 }));
+            VERIFY(vector<int>({ 2, 0, 0 }) == countSmaller({ 2, 0, 1 }));
+        }
+    };
+
     /* Remove Duplicate Letters */
     // LeetCode#316
     // Given a string which contains only lowercase letters, remove duplicate letters so that every 
@@ -752,7 +787,7 @@ namespace lcd7
 
     static void run()
     {
-        p329().test();
+        p315().test();
     }
 
     //REGISTER_RUNNABLE(lcd7)
