@@ -147,24 +147,19 @@ namespace lcd1
     {
         int getMaxWithNoRepeats(const string& s)
         {
-            if (s.size() == 0)
-                return 0;
-
-            unordered_map<char, int> m;
-
-            int mx = 0;
+            unordered_set<char> m;
             int i = 0;
-            m[s[i]] = i;
-            for (int j = 1; j < s.size(); ++j)
+            int mx = 0;
+            for (int j = 0; j < s.size(); ++j)
             {
                 if (m.find(s[j]) != m.end())
                 {
-                    mx = max(mx, j - i);
                     while (m.find(s[j]) != m.end())
                         m.erase(s[i++]);
                 }
 
-                m[s[j]] = j;
+                m.insert(s[j]);
+                mx = max(mx, j - i + 1);
             }
 
             return mx;
@@ -175,6 +170,7 @@ namespace lcd1
             VERIFY(0 == getMaxWithNoRepeats(""));
             VERIFY(3 == getMaxWithNoRepeats("abcabcbb"));
             VERIFY(1 == getMaxWithNoRepeats("bbb"));
+            VERIFY(3 == getMaxWithNoRepeats("abc"));
         }
     };
 
@@ -217,39 +213,44 @@ namespace lcd1
             if (k == 0)
                 return min(v1[0], v2[0]);
 
-            int m1 = min(k / 2, static_cast<int>(v1.size() - 1));
-            int m2 = min(k / 2, static_cast<int>(v2.size() - 1));
+            if (v1.size() > v2.size())
+                return findKth(v2, v1, k);
 
-            return (v1[m1] < v2[m2])
-                ? findKth(vector<int>(v1.begin() + m1 + 1, v1.end()), v2, k - m1 - 1)
-                : findKth(v1, vector<int>(v2.begin() + m2 + 1, v2.end()), k - m2 - 1);
+            int m1 = min(k / 2, static_cast<int>(v1.size() - 1));
+            int m2 = k - m1 - 1;
+
+            if (v1[m1] < v2[m2])
+                return findKth(vector<int>(v1.begin() + m1 + 1, v1.end()), v2, k - m1 - 1);
+            else if (v1[m1] > v2[m2])
+                return findKth(v1, vector<int>(v2.begin() + m2 + 1, v2.end()), k - m2 - 1);
+            else
+                return v1[m1];
         }
 
-        double findMedian(const vector<int>& v1, const vector<int>& v2)
+        double findMedianSortedArrays(const vector<int>& v1, const vector<int>& v2)
         {
-            if ((v1.size() + v2.size()) == 0)
+            if (v1.empty() && v2.empty())
                 return 0.0;
 
-            int mid = (v1.size() + v2.size()) / 2;
+            int len = v1.size() + v2.size();
 
-            double m = findKth(v1, v2, mid);
-            if (((v1.size() + v2.size()) % 2) == 0)
-                m = (m + findKth(v1, v2, mid - 1)) / 2.0;
-
-            return m;
+            return (len % 2)
+                ? findKth(v1, v2, len / 2)
+                : (findKth(v1, v2, len / 2 - 1) + findKth(v1, v2, len / 2)) / 2.0;
         }
 
         void test()
         {
-            VERIFY(2.0 == findMedian({ 1, 3 }, { 2 }));
-            VERIFY(2.5 == findMedian({ 1, 2 }, { 3, 4 }));
+            VERIFY(2.0 == findMedianSortedArrays({ 1, 3 }, { 2 }));
+            VERIFY(2.5 == findMedianSortedArrays({ 1, 2 }, { 3, 4 }));
+            VERIFY(1.5 == findMedianSortedArrays({ 1, 2 }, { 1, 2 }));
 
-            VERIFY(4.0 == findMedian({ 1, 2, 3, 4 }, { 5, 6, 7 }));
-            VERIFY(4.5 == findMedian({ 1, 2, 3, 4 }, { 5, 6, 7, 8 }));
+            VERIFY(4.0 == findMedianSortedArrays({ 1, 2, 3, 4 }, { 5, 6, 7 }));
+            VERIFY(4.5 == findMedianSortedArrays({ 1, 2, 3, 4 }, { 5, 6, 7, 8 }));
 
-            VERIFY(1.0 == findMedian({ 1 }, {}));
-            VERIFY(1.0 == findMedian({}, { 1 }));
-            VERIFY(0.0 == findMedian({}, {}));
+            VERIFY(1.0 == findMedianSortedArrays({ 1 }, {}));
+            VERIFY(1.0 == findMedianSortedArrays({}, { 1 }));
+            VERIFY(0.0 == findMedianSortedArrays({}, {}));
         }
     };
 
@@ -293,33 +294,8 @@ namespace lcd1
             return mp.second > 0 ? s.substr(mp.first, mp.second + 1) : "";
         }
 
-        string getLongestPalindrome(const string& s)
-        {
-            // dp[i][j] indicates s[j..i] is a palindrome 
-            vector<vector<bool>> dp(s.size(), vector<bool>(s.size()));
-
-            // longest palindromic string
-            string lp;
-
-            for (int i = 0; i < dp.size(); ++i)
-                for (int j = i; j >= 0; --j)
-                {
-                    if (i == j)
-                        dp[i][j] = true;
-                    else if ((i - j) == 1)
-                        dp[i][j] = s[i] == s[j];
-                    else
-                        dp[i][j] = (s[i] == s[j]) && dp[i - 1][j + 1];
-
-                    // determine longest palindrome
-                    if (dp[i][j] && ((i - j + 1) > lp.size()))
-                        lp = s.substr(j, i - j + 1);
-                }
-
-            return lp;
-        }
-
-        string longestPalindrome(const string& s)
+        /* Optimized */
+        string getLongestPalindrome_opt(const string& s)
         {
             vector<vector<int>> dp(s.size(), vector<int>(2));
 
@@ -352,17 +328,38 @@ namespace lcd1
             return s.substr(mi, mj - mi + 1);
         }
 
+        string getLongestPalindrome(const string& s)
+        {
+            // dp[i][j] indicates s[i..j] is a palindrome 
+            vector<vector<bool>> dp(s.size(), vector<bool>(s.size()));
+
+            // longest palindromic string
+            string lp;
+
+            for (int j = 0; j < dp.size(); ++j)
+                for (int i = j; i >= 0; --i)
+                {
+                    if (i == j)
+                        dp[i][j] = true;
+                    else if ((j - i) == 1)
+                        dp[i][j] = s[i] == s[j];
+                    else
+                        dp[i][j] = (s[i] == s[j]) && dp[i + 1][j - 1];
+
+                    // determine longest palindrome
+                    if (dp[i][j] && ((j - i + 1) > lp.size()))
+                        lp = s.substr(i, j - i + 1);
+                }
+
+            return lp;
+        }
+
         void test()
         {
-            VERIFY("tacocat" == longestPalindrome("footacocatbar"));
-            VERIFY("aa" == longestPalindrome("aab"));
-            VERIFY("a" == longestPalindrome("a"));
-            VERIFY("cc" == longestPalindrome("ccd"));
-
-            //string t1 = "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd";
-            //LOG(findDuration([&]() {
-            //    VERIFY(t1 == longestPalindrome(t1));
-            //}, 1));
+            VERIFY("tacocat" == getLongestPalindrome("footacocatbar"));
+            VERIFY("aa" == getLongestPalindrome("aab"));
+            VERIFY("a" == getLongestPalindrome("a"));
+            VERIFY("cc" == getLongestPalindrome("ccd"));
         }
     };
 
@@ -415,34 +412,25 @@ namespace lcd1
 
         string convertToZigzag(const string& s, int n)
         {
-            if (s.size() <= n)
+            if ((s.size() <= n) || (n == 1))
                 return s;
 
             vector<string> v(n);
-
-            // current row index
-            int vi = 0;
-
-            // direction of row index (incr/decr)
-            int vid = 1;
-
+            int vi = 0; // current row index
+            int vid = 1; // direction of row index (incr/decr)
             for (int i = 0; i < s.size(); i++)
             {
                 v[vi].push_back(s[i]);
                 vi += vid;
 
                 // if at either top or bottom row, change direction
-                if (!(vi % (n - 1)))
-                {
+                if ((vi == 0) || (vi == (n - 1)))
                     vid *= -1;
-                }
             }
 
             string o;
             for (int i = 0; i < n; i++)
-            {
                 o += v[i];
-            }
 
             return o;
         }
@@ -451,14 +439,45 @@ namespace lcd1
         {
             VERIFY("PAHNAPLSIIGYIR" == convertToZigzag_0("PAYPALISHIRING", 3));
             VERIFY("PAHNAPLSIIGYIR" == convertToZigzag("PAYPALISHIRING", 3));
+            VERIFY("AB" == convertToZigzag("AB", 1));
         }
     };
 
-    /* String to Integer (atoi) */
+    /* String to Integer */
     // LeetCode#8
-    // Implement atoi()
+    // Implement atoi to convert a string to an integer.
+    // Hint: Carefully consider all possible input cases.If you want a challenge, please do not see
+    // below and ask yourself what are the possible input cases.
     struct p008
     {
+        int myAtoi_0(const string& s)
+        {
+            constexpr unsigned int mx = numeric_limits<unsigned int>::max() / 2 + 1;
+
+            unsigned int n = 0;
+            int sign = 1;
+            for (int i = 0; i < s.size(); ++i)
+            {
+                if (s[i] == '-')
+                    sign = -1;
+
+                int d = s[i] - '0';
+                if ((d < 0) || (d > 9))
+                    continue;
+
+                unsigned int m = n;
+
+                n *= 10;
+                n += d;
+
+                if ((n < m) || (n > mx))
+                    throw overflow_error("overflow");
+            }
+
+            n *= sign;
+            return n;
+        }
+
         bool isDigit(char c)
         {
             return ((c - '0') >= 0) && ((c - '0') <= 9);
@@ -471,7 +490,7 @@ namespace lcd1
                 : ((INT_MAX / x) < n) || ((INT_MIN / x) > n);
         }
 
-        int myAtoi(string str) {
+        int myAtoi(const string& str) {
             int i = 0;
             int signum = 1;
             while ((i < str.size()) && !isDigit(str[i]))
@@ -501,6 +520,22 @@ namespace lcd1
             }
 
             return n * signum;
+        }
+
+        void test()
+        {
+            VERIFY(INT_MAX == myAtoi("2147483647"));
+            VERIFY(INT_MIN == myAtoi("-2147483648"));
+            VERIFY(0 == myAtoi("0"));
+            VERIFY(-1 == myAtoi("-1"));
+            VERIFY(1 == myAtoi("1"));
+            VERIFY(20842 == myAtoi("20842"));
+            VERIFY(5 == myAtoi("05"));
+            VERIFY(-519 == myAtoi("-519"));
+
+            VERIFY(INT_MAX == myAtoi("209482029382502"));
+            VERIFY(INT_MAX == myAtoi("2147483649"));
+            VERIFY(INT_MIN == myAtoi("-2147483649"));
         }
     };
 
@@ -548,15 +583,12 @@ namespace lcd1
         void test()
         {
             VERIFY(isRegexMatch("aab", "c*a*b"));
-            VERIFY(isRegexMatch("aab", "c*a*b"));
             VERIFY(!isRegexMatch("aa", "a"));
             VERIFY(!isRegexMatch("aaa", "aa"));
             VERIFY(isRegexMatch("aa", "a*"));
             VERIFY(isRegexMatch("aa", ".*"));
             VERIFY(isRegexMatch("ab", ".*"));
-            VERIFY(isRegexMatch("aab", "c*a*b"));
             VERIFY(isRegexMatch("gggt", "g*t"));
-            VERIFY(isRegexMatch("gggoat", ".*t"));
             VERIFY(isRegexMatch("gggoat", ".*t"));
             VERIFY(isRegexMatch("a", "ab*"));
             VERIFY(!isRegexMatch("aaa", "a*b"));
@@ -602,7 +634,7 @@ namespace lcd1
     /* 3Sum Closest */
     // LeetCode#16
     // Given an array S of n integers, find three integers in S such that the sum is closest to a
-    // given number, target.Return the sum of the three integers. You may assume that each input
+    // given number, target. Return the sum of the three integers. You may assume that each input
     // would have exactly one solution.
     // For example, Given array S = {-1 2 1 -4}, and target = 1. The sum that is closest to the
     // target is 2. (-1 + 2 + 1 = 2).
@@ -1802,7 +1834,7 @@ namespace lcd1
         {
             for (int i = 0; i < v.size(); ++i)
             {
-                if ((v[i] > 0) && (v[i] < v.size()) && (v[v[i] - 1] != v[i]))
+                while ((v[i] > 0) && (v[i] <= v.size()) && (v[v[i] - 1] != v[i]))
                     swap(v[v[i] - 1], v[i]);
             }
 
@@ -1823,6 +1855,7 @@ namespace lcd1
             VERIFY(2 == getFirstMissingPositive({ 1 }));
             VERIFY(1 == getFirstMissingPositive({ -4 }));
             VERIFY(1 == getFirstMissingPositive({ -4, 1000 }));
+            VERIFY(3 == getFirstMissingPositive({ 0, 4, 2, 1 }));
         }
     };
 
@@ -2124,6 +2157,30 @@ namespace lcd1
     // (clockwise).
     struct p048
     {
+        void rotateMatrix_0(vector<vector<char>>& m)
+        {
+            int nb = m.size() / 2;
+            for (int b = 0; b < nb; ++b)
+            {
+                int i = b;
+                int j = b;
+                int n = m.size() - b * 2;
+                for (int k = 0; k < n - 1; ++k)
+                {
+                    // save top-left
+                    char tmp = m[i + k][j];
+                    // swap with bottom-left
+                    m[i + k][j] = m[n - 1 + i][j + k];
+                    // swap with bottom-right
+                    m[n - 1 + i][j + k] = m[n - 1 + i - k][n - 1 + j];
+                    // swap with top-right
+                    m[n - 1 + i - k][n - 1 + j] = m[i][n - 1 + j - k];
+                    // final swap
+                    m[i][n - 1 + j - k] = tmp;
+                }
+            }
+        }
+
         void rotateMatrix(vector<vector<char>>& m)
         {
             // change the order of flip/tranpose to change rotation direction
@@ -2134,20 +2191,21 @@ namespace lcd1
                     swap(m[i][j], m[m.size() - 1 - i][j]);
             //printVector(m);
 
-            // tranpose
-            for (int i = 0; i < m.size(); ++i)
-                for (int j = i; j < m[0].size(); ++j)
+            // tranpose (scan lower triangle below the diagonal)
+            for (int i = 1; i < m.size(); ++i)
+                for (int j = 0; j < i; ++j)
                     swap(m[i][j], m[j][i]);
+
             //printVector(m);
         }
 
         void test()
         {
             vector<vector<char>> m = {
-                { 'a', 'a', 'b', 'b' },
-                { 'a', 'a', 'b', 'b' },
-                { 'x', 'x', 'y', 'y' },
-                { 'x', 'x', 'y', 'y' },
+                { '0', '1', '2', '3' },
+                { '4', '5', '6', '7' },
+                { '8', '9', 'a', 'b' },
+                { 'c', 'd', 'e', 'f' },
             };
 
             printVector(m);
@@ -2155,18 +2213,40 @@ namespace lcd1
             printVector(m);
 
             VERIFY(m == vector<vector<char>>({
-                { 'x', 'x', 'a', 'a' },
-                { 'x', 'x', 'a', 'a' },
-                { 'y', 'y', 'b', 'b' },
-                { 'y', 'y', 'b', 'b' },
+                { 'c', '8', '4', '0' },
+                { 'd', '9', '5', '1' },
+                { 'e', 'a', '6', '2' },
+                { 'f', 'b', '7', '3' },
+            }));
+
+            m = {
+                { 'x', 'x', ' ', ' ', 'x', 'x' },
+                { 'x', 'x', ' ', ' ', 'x', 'x' },
+                { ' ', ' ', ' ', ' ', 'x', 'x' },
+                { 'x', 'x', 'x', 'x', 'x', 'x' },
+                { 'x', 'x', 'x', 'x', 'x', 'x' },
+                { ' ', ' ', ' ', ' ', ' ', ' ' },
+            };
+
+            printVector(m);
+            rotateMatrix_0(m);
+            printVector(m);
+
+            VERIFY(m == vector<vector<char>>({
+                { ' ', 'x', 'x', ' ', 'x', 'x' },
+                { ' ', 'x', 'x', ' ', 'x', 'x' },
+                { ' ', 'x', 'x', ' ', ' ', ' ' },
+                { ' ', 'x', 'x', ' ', ' ', ' ' },
+                { ' ', 'x', 'x', 'x', 'x', 'x' },
+                { ' ', 'x', 'x', 'x', 'x', 'x' },
             }));
         }
     };
 
     static void run()
     {
-        p042().test();
+        p014().test();
     }
 
-    //REGISTER_RUNNABLE(lcd1)
+    REGISTER_RUNNABLE(lcd1)
 }

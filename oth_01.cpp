@@ -2220,7 +2220,7 @@ namespace oth1
 
             bool contains(const string& s) override
             {
-                shared_ptr<TrieNode> n = m_root;
+                auto n = m_root;
                 int i = 0;
                 while ((i < s.size()) && (n->children.find(s[i]) != n->children.end()))
                 {
@@ -2487,10 +2487,68 @@ namespace oth1
         }
     };
 
-    static void run()
+    /* Implement Singleton Pattern */
+    namespace p20
     {
-        p13::demo();
+        class MySingleton
+        {
+        public:
+            // heap allocated
+            //static MySingleton& getInstance()
+            //{
+            //    static unique_ptr<MySingleton> pInstance(new MySingleton());
+            //    return *pInstance;
+            //}
+
+            // bss
+            static MySingleton& getInstance()
+            {
+                static MySingleton instance;
+                return instance;
+            }
+
+            int getValue()
+            {
+                return m_value;
+            }
+
+            void setValue(int value)
+            {
+                m_value = value;
+            }
+
+            ~MySingleton()
+            {
+                LOG(__FUNCTION__);
+            }
+
+        private:
+            MySingleton()
+            {
+                LOG(__FUNCTION__);
+            }
+
+            MySingleton(const MySingleton&) = delete;
+            MySingleton& operator=(const MySingleton&) = delete;
+
+
+            int m_value = 0;
+        };
+
+        void test()
+        {
+            LOG("singleton demo");
+
+            LOG(MySingleton::getInstance().getValue());
+            MySingleton::getInstance().setValue(10);
+            LOG(MySingleton::getInstance().getValue());
+        }
     }
 
-    REGISTER_RUNNABLE(oth1)
+    static void run()
+    {
+        p20::test();
+    }
+
+    //REGISTER_RUNNABLE(oth1)
 }

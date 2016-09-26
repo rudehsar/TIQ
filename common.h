@@ -450,12 +450,12 @@ namespace cmn
         template<typename TCallback>
         void bfs(TCallback callback, int sourceId = 0)
         {
+            queue<int> q;
             vector<TraversalState> state(size(), TraversalState::UNDISCOVERED);
 
+            q.push(sourceId);
             state[sourceId] = TraversalState::DISCOVERED;
 
-            queue<int> q;
-            q.push(sourceId);
             while (!q.empty())
             {
                 int id = q.front();

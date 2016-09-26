@@ -738,16 +738,16 @@ namespace lcd2
             };
 
             const vector<vector<int>> t = {
-                // b  s  d  .  e
-                { 0, 0, 0, 0, 0 },
-                { 1, 2, 3, 5, 0 }, //  1 Pre
-                { 0, 0, 3, 5, 0 }, //  2 Sign
+                //b   s  d  .  e
+                { 0,  0, 0, 0, 0 },
+                { 1,  2, 3, 5, 0 }, //  1 Pre
+                { 0,  0, 3, 5, 0 }, //  2 Sign
                 { 10, 0, 3, 4, 7 }, //  3 Digits
                 { 10, 0, 6, 0, 7 }, //  4 DigitsDot
-                { 0, 0, 6, 0, 0 }, //  5 Dot
+                { 0,  0, 6, 0, 0 }, //  5 Dot
                 { 10, 0, 6, 0, 7 }, //  6 DotDigits
-                { 0, 8, 9, 0, 0 }, //  7 E
-                { 0, 0, 9, 0, 0 }, //  8 ESign
+                { 0,  8, 9, 0, 0 }, //  7 E
+                { 0,  0, 9, 0, 0 }, //  8 ESign
                 { 10, 0, 9, 0, 0 }, //  9 EDigits
                 { 10, 0, 0, 0, 0 }, // 10 Post
             };
@@ -975,8 +975,8 @@ namespace lcd2
                 string line;
                 if (k > 1)
                 {
-                    // number of spaces to distribute across the words (note, the last word doesn't need any
-                    // trailng spaces, hence k - 1).
+                    // number of spaces to distribute across the words (note, the last word doesn't
+                    // need any trailng spaces, hence k - 1).
                     string ws((columnWidth - len) / (k - 1), ' ');
                     // extra spaces that needs to be meted out.
                     int ns = (columnWidth - len) % (k - 1);
@@ -1306,69 +1306,6 @@ namespace lcd2
         {
             VERIFY("BANC" == minWindowSubstring("ADOBECODEBANC", "ABC"));
             VERIFY("AFBCA" == minWindowSubstring("ADEAFBCAGCAH", "AABC"));
-        }
-    };
-
-    /* String to Integer */
-    // LeetCode#8
-    // Implement atoi to convert a string to an integer.
-    // Hint: Carefully consider all possible input cases.If you want a challenge, please do not see
-    // below and ask yourself what are the possible input cases.
-    struct p080
-    {
-        int custom_atoi(const string& s)
-        {
-            constexpr unsigned int mx = numeric_limits<unsigned int>::max() / 2 + 1;
-
-            unsigned int n = 0;
-            int sign = 1;
-            for (int i = 0; i < s.size(); ++i)
-            {
-                if (s[i] == '-')
-                    sign = -1;
-
-                int d = s[i] - '0';
-                if ((d < 0) || (d > 9))
-                    continue;
-
-                unsigned int m = n;
-
-                n *= 10;
-                n += d;
-
-                if ((n < m) || (n > mx))
-                    throw overflow_error("overflow");
-            }
-
-            n *= sign;
-            return n;
-        }
-
-        void test()
-        {
-            VERIFY(INT_MAX == custom_atoi("2147483647"));
-            VERIFY(INT_MIN == custom_atoi("-2147483648"));
-            VERIFY(0 == custom_atoi("0"));
-            VERIFY(-1 == custom_atoi("-1"));
-            VERIFY(1 == custom_atoi("1"));
-            VERIFY(20842 == custom_atoi("20842"));
-            VERIFY(5 == custom_atoi("05"));
-            VERIFY(-519 == custom_atoi("-519"));
-
-            for (auto& s : { "209482029382502", "2147483649", "-2147483649" })
-            {
-                bool caught_overflow_error = false;
-                try
-                {
-                    custom_atoi(s);
-                }
-                catch (overflow_error&)
-                {
-                    caught_overflow_error = true;
-                };
-
-                VERIFY(caught_overflow_error);
-            }
         }
     };
 
