@@ -806,58 +806,6 @@ namespace lcd1
         }
     };
 
-    /* Generate Parentheses */
-    // LeetCode#22
-    // Given n pairs of parentheses, write a function to generate all combinations of well-formed 
-    // parentheses. For example, given n = 3, a solution set is:
-    // [
-    //   "((()))",
-    //   "(()())",
-    //   "(())()",
-    //   "()(())",
-    //   "()()()"
-    // ]
-    struct p022
-    {
-        void generateParenthesisHelper(vector<string>& r, string s, int lc, int rc)
-        {
-            //LOG(s << ":" << lc << "," << rc);
-
-            if (lc > rc)
-                return;
-
-            if ((lc == 0) && (rc == 0))
-            {
-                r.push_back(s);
-                return;
-            }
-
-            if (lc > 0)
-                generateParenthesisHelper(r, s + "(", lc - 1, rc);
-
-            if (rc > 0)
-                generateParenthesisHelper(r, s + ")", lc, rc - 1);
-        }
-
-        vector<string> generateParenthesis(int n) {
-            vector<string> r;
-            generateParenthesisHelper(r, "", n, n);
-
-            return r;
-        }
-
-        void test()
-        {
-            VERIFY(vector<string>({
-                "((()))",
-                "(()())",
-                "(())()",
-                "()(())",
-                "()()()"
-            }) == generateParenthesis(3));
-        }
-    };
-
     /* Merge K Sorted Lists */
     // LeetCode#21
     struct p021
@@ -866,14 +814,9 @@ namespace lcd1
         {
             // Priority queue item which stores individual min values from i'th row and j'th position.
             typedef pair<int, pair<int, int>> pq_item;
-            auto comp = [](pq_item& p1, pq_item& p2)
-            {
-                return p1.first > p2.first;
-            };
 
-            // use custom greater comparer as priorirty_queue by default uses less<> to build a max
-            // heap.
-            priority_queue<pq_item, vector<pq_item>, decltype(comp)> pq(comp);
+            // use greater to build a max heap.
+            priority_queue<pq_item, vector<pq_item>, greater<pq_item>> pq;
             for (int i = 0; i < v.size(); ++i)
                 if (v[i].size() > 0)
                     pq.emplace(v[i][0], make_pair(i, 0));
@@ -927,6 +870,58 @@ namespace lcd1
             };
 
             VERIFY(vector<int>({ 7, 7, 14, 14, 15, 15, 17, 17, 17, 17, 17, 24, 24, 24 }) == mergeKWay(v));
+        }
+    };
+
+    /* Generate Parentheses */
+    // LeetCode#22
+    // Given n pairs of parentheses, write a function to generate all combinations of well-formed 
+    // parentheses. For example, given n = 3, a solution set is:
+    // [
+    //   "((()))",
+    //   "(()())",
+    //   "(())()",
+    //   "()(())",
+    //   "()()()"
+    // ]
+    struct p022
+    {
+        void generateParenthesisHelper(vector<string>& r, string s, int lc, int rc)
+        {
+            //LOG(s << ":" << lc << "," << rc);
+
+            if (lc > rc)
+                return;
+
+            if ((lc == 0) && (rc == 0))
+            {
+                r.push_back(s);
+                return;
+            }
+
+            if (lc > 0)
+                generateParenthesisHelper(r, s + "(", lc - 1, rc);
+
+            if (rc > 0)
+                generateParenthesisHelper(r, s + ")", lc, rc - 1);
+        }
+
+        vector<string> generateParenthesis(int n) {
+            vector<string> r;
+            generateParenthesisHelper(r, "", n, n);
+
+            return r;
+        }
+
+        void test()
+        {
+            VERIFY(vector<string>({
+                "((()))",
+                "(()())",
+                "(())()",
+                "()(())",
+                "()()()"
+            }) == generateParenthesis(3));
         }
     };
 
@@ -1070,11 +1065,9 @@ namespace lcd1
             while (rp < s.size())
             {
                 if (s[wp - 1] != s[rp])
-                {
-                    s[wp++] = s[rp];
-                    seenCount = 1;
-                }
-                else if (seenCount < maxAllowed)
+                    seenCount = 0;
+
+                if (seenCount < maxAllowed)
                 {
                     s[wp++] = s[rp];
                     ++seenCount;
@@ -1140,7 +1133,6 @@ namespace lcd1
                 // length ending at [i - 2]. So we if the previous char (at [i - 1]) matches [j]
                 // (note, length value happens to point to the next char position because of 0-value
                 // indexing), we simply skip to increment the match count.
-                // 
                 while ((j >= 0) && (w[j] != w[i - 1]))
                     j = T[j];
 
@@ -1276,7 +1268,6 @@ namespace lcd1
 
         void test()
         {
-
             //VERIFY(vector<int>({ 0, 2, 1 }) == getNextPermutation({ 2, 1, 3 }));
             VERIFY(vector<int>({ 1, 2, 0 }) == getNextPermutation({ 1, 0, 2 }));
 
@@ -2123,8 +2114,9 @@ namespace lcd1
             {
                 if (m.find(c[j]) != m.end())
                     continue;
+                else
+                    m.insert(c[j]);
 
-                m.insert(c[j]);
                 swap(c[i], c[j]);
                 getAllUniquePermutationsHelper(r, c, i + 1);
                 swap(c[i], c[j]);
@@ -2245,8 +2237,8 @@ namespace lcd1
 
     static void run()
     {
-        p014().test();
+        p026().test();
     }
 
-    REGISTER_RUNNABLE(lcd1)
+    //REGISTER_RUNNABLE(lcd1)
 }

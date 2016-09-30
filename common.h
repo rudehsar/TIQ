@@ -179,6 +179,13 @@ namespace cmn
         }
     };
 
+    enum class TraversalType
+    {
+        PreOrder,
+        InOrder,
+        PostOrder,
+    };
+
     template<typename T>
     class BinarySearchTree : public BinaryTree<T>
     {
@@ -251,13 +258,6 @@ namespace cmn
 
             return n->parent;
         }
-
-        enum class TraversalType
-        {
-            PreOrder,
-            InOrder,
-            PostOrder,
-        };
 
         template<typename TCallback>
         void traverse(TCallback&& callback, TraversalType traversalType = TraversalType::InOrder)

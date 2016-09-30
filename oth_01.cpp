@@ -185,8 +185,8 @@ namespace oth1
 
                 if ((m_lastCharCount == 0) || (m_lastChar != c))
                 {
-                    // move the "cursor" to the end to make the current encoded value permanent, otherwise
-                    // we already rollback and update the latest count.
+                    // move the "cursor" to the end to make the current encoded value permanent,
+                    // otherwise we rollback and update the latest count.
                     m_lastCharPosition = m_encodedValue.size() - 1;
 
                     m_lastChar = c;
@@ -1473,6 +1473,34 @@ namespace oth1
             printVector(v);
         }
 
+        void simpleFormattedIO()
+        {
+            ifstream ifs("C:\\temp\\n.txt");
+
+            int n;
+            ifs >> n;
+            vector<int> v(n);
+            for (int i = 0; i < n; ++i)
+            {
+                ifs >> v[i];
+                LOG("tellg: " << ifs.tellg());
+            }
+
+            printVector(v);
+            ifs.close();
+
+            ofstream ofs("C:\\temp\\n.txt", ios::app);
+            ofs << n << endl;
+            for (int i = 0; i < n; ++i)
+            {
+                ofs << v[i] * v[i] << endl;
+                LOG("tellp: " << ofs.tellp());
+            }
+
+            LOG("file size: " << ofs.tellp() << " bytes");
+            ofs.close();
+        }
+
         void test()
         {
             string fn = "testfio1.txt";
@@ -2544,6 +2572,110 @@ namespace oth1
             LOG(MySingleton::getInstance().getValue());
         }
     }
+
+    /* Iterative Binary Tree Traversal */
+    struct p21
+    {
+        vector<int> getPreorderTraversalI(PTreeNode<int>& p)
+        {
+            vector<int> v;
+
+            stack<PTreeNode<int>> s;
+            while (p || !s.empty())
+            {
+                while (p)
+                {
+                    s.push(p);
+                    v.push_back(p->val);
+
+                    p = p->left;
+                }
+
+                p = s.top();
+                s.pop();
+
+                p = p->right;
+            }
+
+            return v;
+        }
+
+        vector<int> getInorderTraversalI(PTreeNode<int>& p)
+        {
+            vector<int> v;
+
+            stack<PTreeNode<int>> s;
+            while (p || !s.empty())
+            {
+                while (p)
+                {
+                    s.push(p);
+                    p = p->left;
+                }
+
+                p = s.top();
+                s.pop();
+
+                v.push_back(p->val);
+                p = p->right;
+            }
+
+            return v;
+        }
+
+        vector<int> getPostorderTraversalI(PTreeNode<int>& p)
+        {
+            vector<int> v;
+
+            stack<PTreeNode<int>> s;
+            PTreeNode<int> last;
+            while (p || !s.empty())
+            {
+                while (p)
+                {
+                    s.push(p);
+                    p = p->left;
+                }
+
+                while (!s.empty())
+                {
+                    p = s.top();
+                    if (p->right && (p->right != last))
+                    {
+                        p = p->right;
+                        break;
+                    }
+
+                    s.pop();
+                    v.push_back(p->val);
+
+                    last = p;
+                    p.reset();
+                }
+            }
+
+            return v;
+        }
+
+        void test()
+        {
+            BinarySearchTree<int> b;
+            for (auto x : getRandom(0, 25, 10))
+                b.insert(x);
+
+            vector<int> v;
+            b.traverse(b.getRoot(), [&v](auto& p) { v.push_back(p->val); }, TraversalType::PreOrder);
+            VERIFY(v == getPreorderTraversalI(b.getRoot()));
+
+            v.clear();
+            b.traverse(b.getRoot(), [&v](auto& p) { v.push_back(p->val); }, TraversalType::InOrder);
+            VERIFY(v == getInorderTraversalI(b.getRoot()));
+
+            v.clear();
+            b.traverse(b.getRoot(), [&v](auto& p) { v.push_back(p->val); }, TraversalType::PostOrder);
+            VERIFY(v == getPostorderTraversalI(b.getRoot()));
+        }
+    };
 
     static void run()
     {
